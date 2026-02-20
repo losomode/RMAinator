@@ -17,6 +17,7 @@ from audit.serializers import AuditLogSerializer
 class RMAListCreateView(generics.ListCreateAPIView):
     """API endpoint to list and create RMAs."""
     permission_classes = (IsAdminOrVerifiedUser,)
+    pagination_class = None  # Disable pagination - show all RMAs
     
     def get_serializer_class(self):
         if self.request.method == 'POST':

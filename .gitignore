@@ -85,3 +85,6 @@ secrets/
 # Backup
 backup/
 *.bak
+
+# Reference materials
+Reference/

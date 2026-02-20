@@ -151,6 +151,15 @@ const RMADetail = () => {
               </div>
             </div>
 
+            {rma.state === 'REJECTED' && rma.rejection_reason && (
+              <div style={styles.detailSection}>
+                <span style={styles.label}>Rejection Reason:</span>
+                <div style={{ ...styles.notesBox, backgroundColor: '#fee', borderLeft: '4px solid #dc3545' }}>
+                  {rma.rejection_reason}
+                </div>
+              </div>
+            )}
+
             {rma.attachments && rma.attachments.length > 0 && (
               <div style={styles.detailSection}>
                 <span style={styles.label}>Attachments:</span>

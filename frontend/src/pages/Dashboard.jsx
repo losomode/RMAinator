@@ -141,6 +141,14 @@ const Dashboard = () => {
 
 const RMAView = ({ rmas, viewMode }) => {
   const navigate = useNavigate();
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
 
   // Filter based on view mode
   let displayRmas = rmas;
@@ -168,27 +176,42 @@ const RMAView = ({ rmas, viewMode }) => {
     return (
       <div style={{ width: '100%' }}>
         {/* Display groups */}
-        {Object.entries(grouped).map(([groupId, groupRmas]) => (
-          <div key={`group-${groupId}`} style={styles.groupContainer}>
-            <div style={styles.groupHeader}>
-              <h3 style={styles.groupTitle}>
-                📦 RMA Group #{groupId}
-                <span style={styles.groupCount}>({groupRmas.length} devices)</span>
-              </h3>
-              <button
-                onClick={() => navigate(`/group/${groupId}`)}
-                style={styles.viewGroupBtn}
-              >
-                View All
-              </button>
+        {Object.entries(grouped).map(([groupId, groupRmas]) => {
+          const isExpanded = expandedGroups[groupId] !== false; // Default to expanded
+          
+          return (
+            <div key={`group-${groupId}`} style={styles.groupContainer}>
+              <div style={styles.groupHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    onClick={() => toggleGroup(groupId)}
+                    style={styles.toggleBtn}
+                    aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+                  >
+                    {isExpanded ? '▼' : '▶'}
+                  </button>
+                  <h3 style={styles.groupTitle}>
+                    📦 RMA Group #{groupId}
+                    <span style={styles.groupCount}>({groupRmas.length} devices)</span>
+                  </h3>
+                </div>
+                <button
+                  onClick={() => navigate(`/group/${groupId}`)}
+                  style={styles.viewGroupBtn}
+                >
+                  View All
+                </button>
+              </div>
+              {isExpanded && (
+                <div style={styles.grid}>
+                  {groupRmas.map((rma) => (
+                    <RMACard key={rma.id} rma={rma} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={styles.grid}>
-              {groupRmas.map((rma) => (
-                <RMACard key={rma.id} rma={rma} />
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
         
         {/* Display ungrouped RMAs */}
         {ungrouped.length > 0 && (
@@ -518,6 +541,21 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
+  },
+  toggleBtn: {
+    padding: '8px 12px',
+    backgroundColor: 'transparent',
+    color: '#007bff',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '36px',
   },
 };
 
