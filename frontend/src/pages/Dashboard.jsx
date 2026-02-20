@@ -77,7 +77,7 @@ const Dashboard = () => {
               onClick={() => setShowArchived(!showArchived)}
               style={styles.filterBtn}
             >
-              {showArchived ? 'Show Active' : 'Show Archived'}
+              {showArchived ? 'Show Active' : 'Show Completed'}
             </button>
             <button 
               onClick={() => navigate('/rma/new')}
