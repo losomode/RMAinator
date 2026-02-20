@@ -1,6 +1,355 @@
-# RMAinator - RMA Device Tracking System
+# RMAinator
 
-A comprehensive web application for tracking Return Merchandise Authorization (RMA) devices through their complete repair lifecycle.
+**A complete RMA device tracking system for managing repair workflows from submission to completion.**
+
+[![Tests](https://img.shields.io/badge/tests-38%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
+
+---
+
+## 📖 Table of Contents
+
+- [For End Users](#-for-end-users) - How to submit and track RMAs
+- [For Administrators](#-for-administrators) - How to manage RMAs and users
+- [For Developers](#-for-developers) - Setup and deployment
+- [Features](#-features) - Complete feature list
+- [API Documentation](#-api-documentation)
+
+---
+
+## 👥 For End Users
+
+### Getting Started
+
+1. **Register**: Visit the registration page and create an account
+2. **Wait for Approval**: An administrator will approve your account (you'll receive an email)
+3. **Login**: Use your credentials to access the system
+
+### Submitting an RMA
+
+1. Click **"+ New RMA"** from your dashboard
+2. Fill in device information:
+   - Serial number
+   - First ship date (optional)
+   - Issue description
+   - Priority level (Low/Normal/High)
+3. **Attach files** (optional): photos, PDFs, or documents showing the issue
+4. For multiple devices with the same issue: Click **"+ Add Another Device"**
+5. Click **Submit**
+
+### Tracking Your RMAs
+
+**Dashboard Views:**
+- **All RMAs**: See all your submissions
+- **Individual Only**: Single-device RMAs
+- **By RMA Group**: Multi-device submissions grouped together
+
+**RMA Cards** show:
+- Serial number
+- Current state
+- Priority
+- Created date
+- Completion/closure date (if applicable)
+
+**Click any RMA** to see:
+- Complete device information
+- Full status history timeline
+- State transition dates
+- Admin notes and updates
+- Attached files
+
+### Email Notifications
+
+You'll receive automatic emails when:
+- Your account is approved
+- Your RMA is approved or rejected
+- Your RMA state changes (received, diagnosed, repaired, shipped, completed)
+
+### RMA Lifecycle
+
+```
+📝 SUBMITTED  → ✅ APPROVED   → 📦 RECEIVED  → 🔍 DIAGNOSED
+                    ↓
+                ❌ REJECTED
+
+🔍 DIAGNOSED  → 🔧 REPAIRED   → 📮 SHIPPED   → ✨ COMPLETED
+               → 🔄 REPLACED
+```
+
+---
+
+## 👨‍💼 For Administrators
+
+### User Management
+
+**Approve New Users:**
+1. Go to **Admin** → **User Approvals**
+2. Review pending registrations
+3. Click **Approve** or **Reject** with a reason
+
+### RMA Management Workflow
+
+**1. Review New RMAs**
+- View all SUBMITTED RMAs on the admin dashboard
+- Click **Approve** to accept or **Reject** with a reason
+
+**2. Update RMA Status**
+- Open any RMA detail page
+- Use state transition buttons to update:
+  - **RECEIVED**: Device arrived at facility
+  - **DIAGNOSED**: Issue identified
+  - **REPAIRED**: Device fixed (add parts/cost info)
+  - **REPLACED**: Device swapped with new unit
+  - **SHIPPED**: Device sent back to customer
+  - **COMPLETED**: RMA closed
+
+**3. Add Technical Information**
+
+As admin, you can update:
+- Root cause analysis
+- Parts replaced
+- Cost to repair
+- TX2 MAC address
+- Diagnostic checkboxes (Script ran, Services enabled, Uptime good, Stream good, Ship ready)
+
+### Admin Dashboard
+
+**Metrics shown:**
+- RMA counts by state
+- Priority distribution
+- Average time per state
+- Stale RMA alerts
+- Recent activity feed
+
+**Advanced Search:**
+- Filter by: State, Priority, Owner, Date Range
+- Search by: RMA#, Serial Number, Owner name
+
+### Stale RMA Management
+
+**Configure Timeouts:**
+1. Access Django Admin at `/admin/`
+2. Go to **Notifications** → **State Timeouts**
+3. Set timeout hours per state and priority
+   - Example: HIGH priority SUBMITTED = 24 hours
+   - Example: NORMAL priority DIAGNOSED = 72 hours
+
+**Check for Stale RMAs:**
+```bash
+# Run manually
+task backend:check-stale
+
+# Or directly:
+python manage.py check_stale_rmas
+```
+
+**Setup Automated Checks** (see deployment section)
+
+---
+
+## 🛠️ For Developers
+
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+- [Task](https://taskfile.dev/) (optional but recommended)
+
+### Quick Start with Taskfile
+
+```bash
+# Install all dependencies
+task install
+
+# Start backend (terminal 1)
+task backend:dev
+
+# Start frontend (terminal 2)
+task frontend:dev
+```
+
+**Access:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Django Admin: http://localhost:8000/admin
+
+### Manual Setup
+
+**Backend:**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Create Admin User
+
+```bash
+cd backend
+python manage.py createsuperuser
+
+# Then set admin role
+python manage.py shell -c "
+from users.models import User
+u = User.objects.get(username='admin')
+u.role = 'ADMIN'
+u.is_verified = True
+u.save()
+print('✓ Admin user configured')
+"
+```
+
+### Import Sample Data
+
+```bash
+# Import from Excel
+cd backend
+python manage.py import_excel path/to/file.xlsx --admin-username admin
+```
+
+### Testing
+
+```bash
+# Run all tests with coverage
+task test:coverage
+
+# Backend tests only
+task backend:test
+
+# Check code quality
+task check  # Runs fmt, lint, test, coverage
+```
+
+**Current Coverage:** 75% (38 passing tests)
+- Users: 91%
+- Audit: 90%
+- RMA: 80%
+- Notifications: 50%
+
+### Available Tasks
+
+```bash
+task --list  # Show all available commands
+
+# Key commands:
+task install              # Install all dependencies
+task dev                  # Show dev server instructions
+task test                 # Run all tests
+task test:coverage        # Run with coverage report
+task check                # Pre-commit checks
+task build                # Build for production
+task clean                # Clean artifacts
+task backend:migrate      # Run migrations
+task backend:shell        # Django shell
+task db:reset             # Reset database
+```
+
+### Project Structure
+
+```
+RMAinator/
+├── backend/
+│   ├── users/              # Authentication & user management
+│   ├── rma/                # RMA models, views, serializers
+│   ├── notifications/      # Email & stale RMA detection
+│   ├── audit/              # Audit logging
+│   ├── rmainator/          # Django settings
+│   └── manage.py
+├── frontend/
+│   └── src/
+│       ├── pages/          # React page components
+│       ├── services/       # API client
+│       └── contexts/       # Auth context
+├── Taskfile.yml            # Task automation
+├── README.md
+└── SPECIFICATION.md        # Complete requirements
+```
+
+### Production Deployment
+
+**Environment Variables:**
+
+```bash
+# Backend (.env)
+DEBUG=False
+SECRET_KEY=your-secret-key-here-change-this
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+
+# Email (SMTP)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+DEFAULT_FROM_EMAIL=noreply@yourdomain.com
+
+# Database (optional, SQLite default)
+DATABASE_URL=postgresql://user:pass@localhost/rmainator
+```
+
+**Docker Deployment:**
+
+```bash
+# Build and run
+docker-compose up -d
+
+# Run migrations
+docker-compose exec backend python manage.py migrate
+
+# Create superuser
+docker-compose exec backend python manage.py createsuperuser
+```
+
+**Scheduled Tasks (cron):**
+
+```bash
+# Add to crontab for daily stale RMA checks at 9 AM
+0 9 * * * cd /path/to/backend && python manage.py check_stale_rmas
+```
+
+**Nginx Configuration:**
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # Frontend
+    location / {
+        root /path/to/frontend/dist;
+        try_files $uri /index.html;
+    }
+
+    # API
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Static files
+    location /static/ {
+        alias /path/to/backend/staticfiles/;
+    }
+
+    # Media files
+    location /media/ {
+        alias /path/to/backend/media/;
+    }
+}
+```
+
+---
 
 ## 🎯 Features
 
@@ -24,122 +373,16 @@ A comprehensive web application for tracking Return Merchandise Authorization (R
 - 📧 **Admin Notifications** - Receive alerts for new RMAs, user registrations, and stale RMAs
 - 🕐 **Audit Trail** - Complete field-level change history for all RMAs
 
-## 🛠️ Technology Stack
+## 🏗️ Technology Stack
 
-- **Backend:** Django 6.0, Django REST Framework, SQLite
+- **Backend:** Django 6.0, Django REST Framework
 - **Frontend:** React 18, Vite, React Router
+- **Database:** SQLite (dev), PostgreSQL-ready (prod)
 - **Authentication:** JWT (JSON Web Tokens)
-- **Email:** Django email backend (console for dev, SMTP for prod)
+- **Email:** Django email (console dev, SMTP prod)
+- **Testing:** Django TestCase, 75% coverage
 
-## 📋 Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-
-## 🚀 Quick Start
-
-### Backend Setup
-
-\`\`\`bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run migrations
-python manage.py migrate
-
-# Create superuser (admin account)
-python manage.py createsuperuser
-
-# Set admin role (in Django shell)
-python manage.py shell
->>> from users.models import User
->>> user = User.objects.get(username='your_username')
->>> user.role = 'ADMIN'
->>> user.is_verified = True
->>> user.save()
->>> exit()
-
-# Start development server
-python manage.py runserver
-\`\`\`
-
-### Frontend Setup
-
-\`\`\`bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Frontend will be available at http://localhost:5173
-\`\`\`
-
-## 📖 Usage
-
-### Regular Users
-
-1. **Register** at `/register`
-2. **Wait for admin approval**
-3. **Login** at `/login`
-4. **Create RMA** with "+ New RMA" button
-   - Add device details
-   - Attach files if needed
-   - Submit multiple devices with "+ Add Another Device"
-5. **Track progress** on dashboard
-
-### Administrators
-
-1. **Approve users** at `/admin/users`
-2. **Review new RMAs** at `/admin/rmas`
-3. **Update RMA states** through detail pages
-4. **Configure stale timeouts** in Django Admin
-5. **Monitor dashboard** at `/admin`
-
-## 🔄 RMA State Flow
-
-\`\`\`
-SUBMITTED → APPROVED → RECEIVED → DIAGNOSED → REPAIRED/REPLACED → SHIPPED → COMPLETED
-    ↓
-REJECTED (terminal)
-\`\`\`
-
-## 📧 Email Notifications
-
-Automatic emails sent for:
-- New RMA submissions (to admins)
-- RMA state changes (to user)
-- User registrations (to admins)
-- User approvals (to user)
-- Stale RMA alerts (to admins)
-
-**Development:** Emails print to console  
-**Production:** Configure SMTP in settings.py
-
-## ⚙️ Stale RMA Detection
-
-\`\`\`bash
-# Run manually
-python manage.py check_stale_rmas
-
-# Dry run
-python manage.py check_stale_rmas --dry-run
-
-# Schedule with cron (daily at 9 AM)
-0 9 * * * cd /path/to/backend && python manage.py check_stale_rmas
-\`\`\`
-
-Configure timeouts in Django Admin → State Timeout Configurations
-
-## 📊 API Endpoints
+## 📊 API Documentation
 
 ### Authentication
 - `POST /api/auth/register/` - Register user
@@ -162,87 +405,70 @@ Configure timeouts in Django Admin → State Timeout Configurations
 - `GET /api/rma/search/` - Search RMAs
 - `GET /api/rma/admin/dashboard/` - Metrics
 
-## 🔒 Production Configuration
-
-### Security Settings
-
-\`\`\`python
-# settings.py
-DEBUG = False
-SECRET_KEY = 'your-secret-key-here'  # Change this!
-ALLOWED_HOSTS = ['yourdomain.com']
-\`\`\`
-
-### Email Configuration
-
-\`\`\`python
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your-app-password'
-DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
-\`\`\`
-
-### Database (PostgreSQL)
-
-\`\`\`python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rmainator',
-        'USER': 'your_user',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-\`\`\`
-
 ## 🐛 Troubleshooting
 
 **"Account pending admin approval"**
-- Contact admin or approve via Django admin
+- An admin needs to approve your account
+- Contact your administrator
+
+**"Invalid credentials"**
+- Ensure your account is approved and verified
+- Check username/password
+- Try password reset (if configured)
 
 **Backend won't start**
-- Run `python manage.py migrate`
-- Activate virtual environment
+```bash
+# Check migrations
+task backend:migrate
 
-**Frontend can't connect**
-- Ensure backend runs on port 8000
-- Check CORS settings
+# Activate virtual environment
+source backend/venv/bin/activate
 
-**No emails sending**
-- Emails print to console in development
-- Check terminal output
+# Check dependencies
+pip install -r backend/requirements.txt
+```
 
-## 📁 Project Structure
+**Frontend can't connect to backend**
+- Ensure backend is running on port 8000
+- Check CORS settings in `backend/rmainator/settings.py`
+- Verify `VITE_API_URL` in frontend `.env`
 
-\`\`\`
-RMAinator/
-├── backend/
-│   ├── users/          # Authentication
-│   ├── rma/            # RMA management
-│   ├── notifications/  # Emails & stale detection
-│   ├── audit/          # Audit logging
-│   └── rmainator/      # Settings
-├── frontend/
-│   └── src/
-│       ├── pages/      # React pages
-│       ├── services/   # API client
-│       └── contexts/   # Auth context
-└── README.md
-\`\`\`
+**No emails sending (development)**
+- This is expected! Emails print to console
+- Check backend terminal output
 
-## ✅ Implementation Status
+**Database errors**
+```bash
+# Reset database (⚠️ deletes all data)
+task db:reset
+
+# Or manually
+cd backend
+rm db.sqlite3
+python manage.py migrate
+```
+
+## 🤝 Contributing
+
+This is an internal project. For changes:
+1. Create a feature branch
+2. Make changes
+3. Run `task check` (tests + coverage)
+4. Submit PR for review
+
+## 📜 License
+
+Proprietary - Internal Use Only
+
+## ✅ Project Status
 
 - ✅ Phase 1: Foundation (Auth, Models)
 - ✅ Phase 2: RMA Management (CRUD, UI)
 - ✅ Phase 3: Admin Features (Dashboard, Search)
 - ✅ Phase 4: Notifications & Alerts
 - ✅ Phase 5: Audit Logging
-- 🔄 Phase 6: Testing & Polish (In Progress)
+- ✅ Phase 6: Testing (75% coverage)
+- 🔄 Polish & UX improvements (ongoing)
 
 ---
 
