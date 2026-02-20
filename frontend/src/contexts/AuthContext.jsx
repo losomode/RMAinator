@@ -52,6 +52,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await authAPI.updateProfile(profileData);
+      const { user: updatedUser } = response.data;
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data || 'Profile update failed'
+      };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -66,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    updateProfile,
     logout,
     isAdmin,
     isVerified,

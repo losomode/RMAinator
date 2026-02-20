@@ -60,6 +60,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register/', data),
   login: (data) => api.post('/auth/login/', data),
   getCurrentUser: () => api.get('/auth/me/'),
+  updateProfile: (data) => api.patch('/auth/me/', data),
   getPendingUsers: () => api.get('/auth/pending/'),
   approveUser: (userId, approve) => 
     api.post(`/auth/${userId}/approve/`, { approve }),

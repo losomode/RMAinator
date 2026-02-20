@@ -57,6 +57,13 @@ const Dashboard = () => {
               Admin Dashboard
             </button>
           )}
+          <button 
+            onClick={() => navigate('/profile')} 
+            style={styles.profileBtn}
+            title="Edit Profile"
+          >
+            👤 Profile
+          </button>
           <span style={styles.username}>Welcome, {user?.username}</span>
           <button onClick={logout} style={styles.logoutBtn}>Logout</button>
         </div>
@@ -337,6 +344,15 @@ const styles = {
   adminBtn: {
     padding: '8px 16px',
     backgroundColor: '#17a2b8',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  profileBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#28a745',
     color: 'white',
     border: 'none',
     borderRadius: '4px',

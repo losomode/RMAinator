@@ -7,6 +7,7 @@ from .models import User
 from .serializers import (
     UserRegistrationSerializer, 
     UserSerializer,
+    UserUpdateSerializer,
     UserApprovalSerializer
 )
 from .permissions import IsAdmin
@@ -62,13 +63,31 @@ class UserLoginView(views.APIView):
         })
 
 
-class CurrentUserView(generics.RetrieveAPIView):
-    """API endpoint to get current user details."""
+class CurrentUserView(generics.RetrieveUpdateAPIView):
+    """API endpoint to get and update current user details."""
     permission_classes = (IsAuthenticated,)
-    serializer_class = UserSerializer
 
     def get_object(self):
         return self.request.user
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return UserSerializer
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # Update user in storage after profile update
+        updated_user = UserSerializer(instance).data
+        return Response({
+            'message': 'Profile updated successfully',
+            'user': updated_user
+        })
 
 
 class PendingUsersListView(generics.ListAPIView):
