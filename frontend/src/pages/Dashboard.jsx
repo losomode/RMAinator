@@ -102,15 +102,6 @@ const Dashboard = () => {
               All RMAs
             </button>
             <button
-              onClick={() => setViewMode('individual')}
-              style={{
-                ...styles.viewModeBtn,
-                ...(viewMode === 'individual' ? styles.viewModeBtnActive : {})
-              }}
-            >
-              Individual Only
-            </button>
-            <button
               onClick={() => setViewMode('byGroup')}
               style={{
                 ...styles.viewModeBtn,
