@@ -42,7 +42,7 @@
 - **All RMAs**: See all your submissions in a grid view
 - **By RMA Group**: Multi-device submissions organized by group with expand/collapse controls
 
-![User Dashboard - By Group View](Reference/User%202.png)
+![User Dashboard - By Group View](docs/images/User2.png)
 *Dashboard showing RMA groups with collapse controls*
 
 **RMA Cards** show:
@@ -52,7 +52,7 @@
 - Created date
 - Completion/closure date (if applicable)
 
-![User Dashboard - All RMAs View](Reference/User3.png)
+![User Dashboard - All RMAs View](docs/images/User3.png)
 *Dashboard showing all RMAs in grid view*
 
 **Click any RMA** to see:
@@ -62,7 +62,7 @@
 - Admin notes and updates
 - Attached files
 
-![RMA Detail View](Reference/User1.png)
+![RMA Detail View](docs/images/User1.png)
 *Detailed RMA view with device info and status history*
 
 ### Email Notifications
@@ -170,7 +170,7 @@ sequenceDiagram
 
 Access the Django admin interface at `/admin/` to manage all aspects of the system.
 
-![Django Admin - RMA List](Reference/Admin1.png)
+![Django Admin - RMA List](docs/images/Admin1.png)
 *Admin view showing all RMAs with advanced filtering and search*
 
 **Django Admin Features:**
@@ -180,13 +180,13 @@ Access the Django admin interface at `/admin/` to manage all aspects of the syst
 - Bulk actions for state updates
 - Full audit trail access
 
-![Django Admin - RMA Detail](Reference/Admin2.png)
+![Django Admin - RMA Detail](docs/images/Admin2.png)
 *Admin RMA detail view with all technical fields*
 
-![Django Admin - State History](Reference/Admin3.png)
+![Django Admin - State History](docs/images/Admin3.png)
 *Complete state transition history for tracking workflow*
 
-![Django Admin - User Management](Reference/Admin4.png)
+![Django Admin - User Management](docs/images/Admin4.png)
 *User management with role and verification status*
 
 ### Stale RMA Management
