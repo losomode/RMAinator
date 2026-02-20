@@ -66,13 +66,35 @@ You'll receive automatic emails when:
 
 ### RMA Lifecycle
 
-```
-📝 SUBMITTED  → ✅ APPROVED   → 📦 RECEIVED  → 🔍 DIAGNOSED
-                    ↓
-                ❌ REJECTED
-
-🔍 DIAGNOSED  → 🔧 REPAIRED   → 📮 SHIPPED   → ✨ COMPLETED
-               → 🔄 REPLACED
+```mermaid
+stateDiagram-v2
+    [*] --> SUBMITTED: User creates RMA
+    SUBMITTED --> APPROVED: Admin approves
+    SUBMITTED --> REJECTED: Admin rejects
+    APPROVED --> RECEIVED: Device arrives
+    RECEIVED --> DIAGNOSED: Issue identified
+    DIAGNOSED --> REPAIRED: Device fixed
+    DIAGNOSED --> REPLACED: Unit swapped
+    REPAIRED --> SHIPPED: Sent to customer
+    REPLACED --> SHIPPED: Sent to customer
+    SHIPPED --> COMPLETED: RMA closed
+    REJECTED --> [*]
+    COMPLETED --> [*]
+    
+    note right of SUBMITTED
+        📝 User submits device
+        with issue description
+    end note
+    
+    note right of REJECTED
+        ❌ Terminal state
+        (Out of warranty, etc.)
+    end note
+    
+    note right of COMPLETED
+        ✨ Terminal state
+        (Device returned)
+    end note
 ```
 
 ---
@@ -88,28 +110,53 @@ You'll receive automatic emails when:
 
 ### RMA Management Workflow
 
-**1. Review New RMAs**
-- View all SUBMITTED RMAs on the admin dashboard
-- Click **Approve** to accept or **Reject** with a reason
+```mermaid
+sequenceDiagram
+    participant User
+    participant System
+    participant Admin
+    participant Email
+    
+    User->>System: Register account
+    System->>Email: Notify admin of new user
+    Admin->>System: Approve user
+    System->>Email: Send approval notification
+    Email->>User: Account approved
+    
+    User->>System: Submit RMA (with files)
+    System->>Email: Notify admins of new RMA
+    Admin->>System: Review & approve RMA
+    System->>Email: Notify user of approval
+    Email->>User: RMA approved
+    
+    Note over Admin,System: Device received at facility
+    Admin->>System: Update state: RECEIVED
+    System->>Email: Notify user
+    
+    Note over Admin,System: Technician diagnoses issue
+    Admin->>System: Update state: DIAGNOSED<br/>Add root cause
+    System->>Email: Notify user
+    
+    Note over Admin,System: Device repaired
+    Admin->>System: Update state: REPAIRED<br/>Add parts/cost
+    System->>Email: Notify user
+    
+    Note over Admin,System: Device shipped back
+    Admin->>System: Update state: SHIPPED
+    System->>Email: Notify user
+    
+    Note over Admin,System: RMA process complete
+    Admin->>System: Update state: COMPLETED
+    System->>Email: Notify user
+    Email->>User: Device returned
+```
 
-**2. Update RMA Status**
-- Open any RMA detail page
-- Use state transition buttons to update:
-  - **RECEIVED**: Device arrived at facility
-  - **DIAGNOSED**: Issue identified
-  - **REPAIRED**: Device fixed (add parts/cost info)
-  - **REPLACED**: Device swapped with new unit
-  - **SHIPPED**: Device sent back to customer
-  - **COMPLETED**: RMA closed
+**Key Admin Actions:**
 
-**3. Add Technical Information**
-
-As admin, you can update:
-- Root cause analysis
-- Parts replaced
-- Cost to repair
-- TX2 MAC address
-- Diagnostic checkboxes (Script ran, Services enabled, Uptime good, Stream good, Ship ready)
+1. **Review New RMAs**: View SUBMITTED RMAs, approve or reject
+2. **Update Status**: Transition through states as device progresses
+3. **Add Technical Info**: Root cause, parts, cost, diagnostics
+4. **Monitor**: Track stale RMAs and metrics
 
 ### Admin Dashboard
 
@@ -252,6 +299,55 @@ task clean                # Clean artifacts
 task backend:migrate      # Run migrations
 task backend:shell        # Django shell
 task db:reset             # Reset database
+```
+
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph Client["👤 Client Browser"]
+        UI[React Frontend<br/>Port 5173]
+    end
+    
+    subgraph Backend["🖥️ Backend Server"]
+        API[Django REST API<br/>Port 8000]
+        Auth[JWT Authentication]
+        subgraph Apps["Django Apps"]
+            Users[users<br/>Auth & Approval]
+            RMA[rma<br/>Device Tracking]
+            Notif[notifications<br/>Email & Alerts]
+            Audit[audit<br/>Change History]
+        end
+    end
+    
+    subgraph Storage["💾 Storage"]
+        DB[(SQLite/PostgreSQL<br/>Database)]
+        Files[File Storage<br/>Attachments]
+    end
+    
+    subgraph External["📧 External Services"]
+        SMTP[SMTP Server<br/>Email Delivery]
+    end
+    
+    UI -->|HTTP + JWT| API
+    API --> Auth
+    Auth --> Users
+    API --> RMA
+    API --> Notif
+    API --> Audit
+    
+    Users --> DB
+    RMA --> DB
+    Notif --> DB
+    Audit --> DB
+    
+    RMA --> Files
+    Notif -->|Send Emails| SMTP
+    
+    style UI fill:#61dafb,stroke:#333,stroke-width:2px
+    style API fill:#092e20,stroke:#333,stroke-width:2px,color:#fff
+    style DB fill:#336791,stroke:#333,stroke-width:2px,color:#fff
+    style SMTP fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ### Project Structure
