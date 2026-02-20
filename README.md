@@ -39,9 +39,11 @@
 ### Tracking Your RMAs
 
 **Dashboard Views:**
-- **All RMAs**: See all your submissions
-- **Individual Only**: Single-device RMAs
-- **By RMA Group**: Multi-device submissions grouped together
+- **All RMAs**: See all your submissions in a grid view
+- **By RMA Group**: Multi-device submissions organized by group with expand/collapse controls
+
+![User Dashboard - By Group View](Reference/User%202.png)
+*Dashboard showing RMA groups with collapse controls*
 
 **RMA Cards** show:
 - Serial number
@@ -50,12 +52,18 @@
 - Created date
 - Completion/closure date (if applicable)
 
+![User Dashboard - All RMAs View](Reference/User3.png)
+*Dashboard showing all RMAs in grid view*
+
 **Click any RMA** to see:
 - Complete device information
 - Full status history timeline
 - State transition dates
 - Admin notes and updates
 - Attached files
+
+![RMA Detail View](Reference/User1.png)
+*Detailed RMA view with device info and status history*
 
 ### Email Notifications
 
@@ -160,16 +168,26 @@ sequenceDiagram
 
 ### Admin Dashboard
 
-**Metrics shown:**
-- RMA counts by state
-- Priority distribution
-- Average time per state
-- Stale RMA alerts
-- Recent activity feed
+Access the Django admin interface at `/admin/` to manage all aspects of the system.
 
-**Advanced Search:**
-- Filter by: State, Priority, Owner, Date Range
-- Search by: RMA#, Serial Number, Owner name
+![Django Admin - RMA List](Reference/Admin1.png)
+*Admin view showing all RMAs with advanced filtering and search*
+
+**Django Admin Features:**
+- Complete RMA list with inline filtering
+- Filter by state, priority, owner, date range
+- Search by RMA number, serial number
+- Bulk actions for state updates
+- Full audit trail access
+
+![Django Admin - RMA Detail](Reference/Admin2.png)
+*Admin RMA detail view with all technical fields*
+
+![Django Admin - State History](Reference/Admin3.png)
+*Complete state transition history for tracking workflow*
+
+![Django Admin - User Management](Reference/Admin4.png)
+*User management with role and verification status*
 
 ### Stale RMA Management
 
