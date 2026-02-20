@@ -1,0 +1,17 @@
+asgiref==3.11.1
+Django==6.0.2
+django-cors-headers==4.9.0
+djangorestframework==3.16.1
+djangorestframework_simplejwt==5.5.1
+et_xmlfile==2.0.0
+numpy==2.4.2
+openpyxl==3.1.5
+pandas==3.0.1
+pillow==12.1.1
+prompt_toolkit==3.0.52
+PyJWT==2.11.0
+python-dateutil==2.9.0.post0
+python-magic==0.4.27
+six==1.17.0
+sqlparse==0.5.5
+wcwidth==0.6.0
