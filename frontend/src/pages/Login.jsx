@@ -27,6 +27,12 @@ const Login = () => {
     setLoading(false);
   };
 
+  const handleSSOLogin = (provider) => {
+    // Redirect to SSO provider
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    window.location.href = `${apiUrl}/api/auth/${provider}/login/`;
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -72,6 +78,54 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        
+        {/* SSO buttons - uncomment after configuring providers in backend/.env */}
+        {/* See AUTH_SETUP.md for configuration instructions */}
+        {/*
+        <div style={styles.divider}>
+          <div style={styles.dividerLine}></div>
+          <span style={styles.dividerText}>OR</span>
+          <div style={styles.dividerLine}></div>
+        </div>
+        
+        <div style={styles.ssoButtons}>
+          <button
+            onClick={() => handleSSOLogin('google')}
+            style={{...styles.ssoButton, ...styles.googleButton}}
+            disabled={loading}
+          >
+            <span style={styles.ssoIcon}>🔐</span>
+            Sign in with Google
+          </button>
+          
+          <button
+            onClick={() => handleSSOLogin('microsoft')}
+            style={{...styles.ssoButton, ...styles.microsoftButton}}
+            disabled={loading}
+          >
+            <span style={styles.ssoIcon}>🔐</span>
+            Sign in with Microsoft
+          </button>
+          
+          <button
+            onClick={() => handleSSOLogin('auth0')}
+            style={{...styles.ssoButton, ...styles.auth0Button}}
+            disabled={loading}
+          >
+            <span style={styles.ssoIcon}>🔐</span>
+            Sign in with Auth0
+          </button>
+          
+          <button
+            onClick={() => handleSSOLogin('okta')}
+            style={{...styles.ssoButton, ...styles.oktaButton}}
+            disabled={loading}
+          >
+            <span style={styles.ssoIcon}>🔐</span>
+            Sign in with Okta
+          </button>
+        </div>
+        */}
         
         <div style={styles.footer}>
           Don't have an account? <Link to="/register" style={styles.link}>Register</Link>
@@ -160,6 +214,66 @@ const styles = {
   link: {
     color: '#007bff',
     textDecoration: 'none',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    textAlign: 'center',
+    margin: '20px 0',
+    position: 'relative',
+  },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    padding: '0 10px',
+    color: '#999',
+    fontSize: '14px',
+    fontWeight: 500,
+    backgroundColor: 'white',
+  },
+  ssoButtons: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginBottom: '20px',
+  },
+  ssoButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    padding: '12px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    backgroundColor: '#fff',
+    color: '#333',
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  ssoIcon: {
+    marginRight: '8px',
+    fontSize: '16px',
+  },
+  googleButton: {
+    borderColor: '#4285F4',
+    color: '#4285F4',
+  },
+  microsoftButton: {
+    borderColor: '#00A4EF',
+    color: '#00A4EF',
+  },
+  auth0Button: {
+    borderColor: '#EB5424',
+    color: '#EB5424',
+  },
+  oktaButton: {
+    borderColor: '#007DC1',
+    color: '#007DC1',
   },
 };
 

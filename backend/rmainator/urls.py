@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 
 # Customize admin site headers
 admin.site.site_header = "RMAinator Admin"
@@ -25,6 +26,7 @@ admin.site.site_title = "RMAinator Admin"
 admin.site.index_title = "Welcome to RMAinator Administration"
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/admin/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/auth/', include('allauth.urls')),  # SSO providers

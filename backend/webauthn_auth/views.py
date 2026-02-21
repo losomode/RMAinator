@@ -18,6 +18,9 @@ from webauthn import (
 from webauthn.helpers.structs import (
     PublicKeyCredentialDescriptor,
     AuthenticatorTransport,
+    AuthenticatorSelectionCriteria,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
 )
 from webauthn.helpers.cose import COSEAlgorithmIdentifier
 
@@ -58,10 +61,10 @@ class WebAuthnRegistrationBeginView(views.APIView):
             user_name=user.username,
             user_display_name=f"{user.first_name} {user.last_name}" if user.first_name else user.username,
             exclude_credentials=existing_credentials,
-            authenticator_selection={
-                "residentKey": "preferred",
-                "userVerification": "preferred",
-            },
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                resident_key=ResidentKeyRequirement.PREFERRED,
+                user_verification=UserVerificationRequirement.PREFERRED,
+            ),
             supported_pub_key_algs=[
                 COSEAlgorithmIdentifier.ECDSA_SHA_256,
                 COSEAlgorithmIdentifier.RSASSA_PKCS1_v1_5_SHA_256,
@@ -69,7 +72,15 @@ class WebAuthnRegistrationBeginView(views.APIView):
         )
         
         # Store challenge
-        session_key = request.session.session_key or request.session.create()
+        # Use user ID as session key since we're using JWT (no Django sessions)
+        session_key = f"user_{user.id}"
+        
+        # Delete any existing challenges for this user
+        WebAuthnChallenge.objects.filter(
+            user=user,
+            is_registration=True,
+        ).delete()
+        
         WebAuthnChallenge.objects.create(
             user=user,
             challenge=options.challenge,
@@ -91,8 +102,9 @@ class WebAuthnRegistrationCompleteView(views.APIView):
     
     def post(self, request):
         user = request.user
-        credential_data = request.data.get('credential')
-        credential_name = request.data.get('name', 'Security Key')
+        # Frontend sends the entire credential response directly
+        credential_data = request.data
+        credential_name = credential_data.get('name', 'Security Key')
         
         if not credential_data:
             return Response(
@@ -101,7 +113,8 @@ class WebAuthnRegistrationCompleteView(views.APIView):
             )
         
         # Get challenge
-        session_key = request.session.session_key
+        # Use user ID as session key since we're using JWT (no Django sessions)
+        session_key = f"user_{user.id}"
         try:
             challenge_obj = WebAuthnChallenge.objects.get(
                 user=user,
@@ -133,6 +146,11 @@ class WebAuthnRegistrationCompleteView(views.APIView):
             )
             
             # Store credential
+            # Extract transports from response if available
+            transports = []
+            if 'response' in credential_data and 'transports' in credential_data['response']:
+                transports = credential_data['response']['transports']
+            
             WebAuthnCredential.objects.create(
                 user=user,
                 credential_id=verification.credential_id,
@@ -140,7 +158,7 @@ class WebAuthnRegistrationCompleteView(views.APIView):
                 sign_count=verification.sign_count,
                 name=credential_name,
                 aaguid=verification.aaguid,
-                transports=credential_data.get('transports', []),
+                transports=transports,
             )
             
             # Delete used challenge
@@ -167,18 +185,16 @@ class WebAuthnCredentialListView(views.APIView):
     def get(self, request):
         credentials = request.user.webauthn_credentials.all()
         
-        return Response({
-            'credentials': [
-                {
-                    'id': cred.id,
-                    'name': cred.name,
-                    'created_at': cred.created_at,
-                    'last_used': cred.last_used,
-                    'transports': cred.transports,
-                }
-                for cred in credentials
-            ]
-        })
+        return Response([
+            {
+                'id': cred.id,
+                'name': cred.name,
+                'created_at': cred.created_at,
+                'last_used': cred.last_used,
+                'transports': cred.transports,
+            }
+            for cred in credentials
+        ])
 
 
 class WebAuthnCredentialDeleteView(views.APIView):

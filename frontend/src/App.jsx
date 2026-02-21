@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminRMAManagement from './pages/AdminRMAManagement';
 import AdminUserApproval from './pages/AdminUserApproval';
 import CreateRMA from './pages/CreateRMA';
+import SSOCallback from './pages/SSOCallback';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback" element={<SSOCallback />} />
           <Route
             path="/dashboard"
             element={

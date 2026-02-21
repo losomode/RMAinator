@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { startRegistration } from '@simplewebauthn/browser';
 
 const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
@@ -19,6 +20,22 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  
+  // TOTP state
+  const [totpEnabled, setTotpEnabled] = useState(false);
+  const [showTotpSetup, setShowTotpSetup] = useState(false);
+  const [showTotpDisable, setShowTotpDisable] = useState(false);
+  const [totpQrCode, setTotpQrCode] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [totpToken, setTotpToken] = useState('');
+  const [totpDisableToken, setTotpDisableToken] = useState('');
+  const [totpLoading, setTotpLoading] = useState(false);
+  
+  // WebAuthn state
+  const [webauthnCredentials, setWebauthnCredentials] = useState([]);
+  const [showWebauthnAdd, setShowWebauthnAdd] = useState(false);
+  const [webauthnName, setWebauthnName] = useState('');
+  const [webauthnLoading, setWebauthnLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -27,6 +44,281 @@ const Profile = () => {
     });
     setMessage('');
     setError('');
+  };
+
+  // Fetch TOTP and WebAuthn status on mount
+  useEffect(() => {
+    const fetchAuthMethods = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const token = localStorage.getItem('accessToken');
+        
+        // Fetch TOTP status
+        const totpResponse = await fetch(`${apiUrl}/api/auth/totp/status/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (totpResponse.ok) {
+          const totpData = await totpResponse.json();
+          setTotpEnabled(totpData.enabled);
+        }
+        
+        // Fetch WebAuthn credentials
+        const webauthnResponse = await fetch(`${apiUrl}/api/auth/webauthn/credentials/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (webauthnResponse.ok) {
+          const data = await webauthnResponse.json();
+          setWebauthnCredentials(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch auth methods:', err);
+      }
+    };
+    
+    fetchAuthMethods();
+  }, []);
+  
+  const handleTotpSetup = async () => {
+    console.log('TOTP Setup button clicked');
+    setTotpLoading(true);
+    setError('');
+    setMessage('');
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('accessToken');
+      
+      console.log('Fetching TOTP setup from:', `${apiUrl}/api/auth/totp/setup/`);
+      
+      const response = await fetch(`${apiUrl}/api/auth/totp/setup/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      console.log('TOTP setup response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('TOTP setup data received');
+        setTotpQrCode(data.qr_code);
+        setTotpSecret(data.secret);
+        setShowTotpSetup(true);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('TOTP setup failed:', errorData);
+        setError(errorData.error || 'Failed to initialize TOTP setup');
+      }
+    } catch (err) {
+      console.error('TOTP setup error:', err);
+      setError(`Failed to initialize TOTP setup: ${err.message}`);
+    }
+    
+    setTotpLoading(false);
+  };
+  
+  const handleTotpConfirm = async () => {
+    if (!totpToken) {
+      setError('Please enter the 6-digit code from your authenticator app');
+      return;
+    }
+    
+    setTotpLoading(true);
+    setError('');
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch(`${apiUrl}/api/auth/totp/confirm/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: totpToken }),
+      });
+      
+      if (response.ok) {
+        setTotpEnabled(true);
+        setShowTotpSetup(false);
+        setMessage('Two-factor authentication enabled successfully');
+        setTotpToken('');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Invalid verification code');
+      }
+    } catch (err) {
+      setError('Failed to verify TOTP code');
+    }
+    
+    setTotpLoading(false);
+  };
+  
+  const handleTotpDisable = async () => {
+    if (!totpDisableToken) {
+      setError('Please enter the 6-digit code from your authenticator app');
+      return;
+    }
+    
+    setTotpLoading(true);
+    setError('');
+    setMessage('');
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch(`${apiUrl}/api/auth/totp/disable/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: totpDisableToken }),
+      });
+      
+      if (response.ok) {
+        setTotpEnabled(false);
+        setShowTotpDisable(false);
+        setMessage('Two-factor authentication disabled successfully');
+        setTotpDisableToken('');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Invalid verification code');
+      }
+    } catch (err) {
+      console.error('TOTP disable error:', err);
+      setError('Failed to disable TOTP');
+    }
+    
+    setTotpLoading(false);
+  };
+  
+  const handleWebauthnAdd = async () => {
+    if (!webauthnName.trim()) {
+      setError('Please enter a name for this security key');
+      return;
+    }
+    
+    console.log('WebAuthn: Starting registration for key:', webauthnName);
+    setWebauthnLoading(true);
+    setError('');
+    setMessage('');
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('accessToken');
+      
+      console.log('WebAuthn: Fetching registration options...');
+      // Start registration
+      const beginResponse = await fetch(`${apiUrl}/api/auth/webauthn/register/begin/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: webauthnName }),
+      });
+      
+      console.log('WebAuthn: Begin response status:', beginResponse.status);
+      
+      if (!beginResponse.ok) {
+        const errorData = await beginResponse.json().catch(() => ({}));
+        console.error('WebAuthn: Begin registration failed:', errorData);
+        throw new Error(errorData.error || 'Failed to begin registration');
+      }
+      
+      const options = await beginResponse.json();
+      console.log('WebAuthn: Got registration options:', options);
+      
+      // Parse the options if it's a string
+      const parsedOptions = typeof options.options === 'string' 
+        ? JSON.parse(options.options) 
+        : options.options || options;
+      
+      console.log('WebAuthn: Parsed options:', parsedOptions);
+      console.log('WebAuthn: Starting browser registration...');
+      
+      // Use WebAuthn API
+      const credential = await startRegistration(parsedOptions);
+      console.log('WebAuthn: Browser registration completed');
+      
+      console.log('WebAuthn: Completing registration on server...');
+      // Complete registration
+      const completeResponse = await fetch(`${apiUrl}/api/auth/webauthn/register/complete/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credential),
+      });
+      
+      console.log('WebAuthn: Complete response status:', completeResponse.status);
+      
+      if (!completeResponse.ok) {
+        const errorData = await completeResponse.json().catch(() => ({}));
+        console.error('WebAuthn: Complete registration failed:', errorData);
+        throw new Error(errorData.error || 'Failed to complete registration');
+      }
+      
+      // Refresh credentials list
+      const listResponse = await fetch(`${apiUrl}/api/auth/webauthn/credentials/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (listResponse.ok) {
+        const data = await listResponse.json();
+        setWebauthnCredentials(data);
+      }
+      
+      console.log('WebAuthn: Registration successful!');
+      setShowWebauthnAdd(false);
+      setWebauthnName('');
+      setMessage('Security key added successfully');
+    } catch (err) {
+      console.error('WebAuthn error:', err);
+      setError(err.message || 'Failed to add security key');
+    }
+    
+    setWebauthnLoading(false);
+  };
+  
+  const handleWebauthnDelete = async (credentialId) => {
+    if (!confirm('Are you sure you want to remove this security key?')) {
+      return;
+    }
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch(`${apiUrl}/api/auth/webauthn/credentials/${credentialId}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        setWebauthnCredentials(webauthnCredentials.filter(c => c.id !== credentialId));
+        setMessage('Security key removed successfully');
+      } else {
+        setError('Failed to remove security key');
+      }
+    } catch (err) {
+      setError('Failed to remove security key');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -217,6 +509,212 @@ const Profile = () => {
               )}
             </div>
 
+            <div style={styles.divider}></div>
+
+            {/* TOTP/2FA Section */}
+            <div style={styles.authSection}>
+              <div style={styles.authHeader}>
+                <div>
+                  <h2 style={styles.sectionTitle}>Two-Factor Authentication</h2>
+                  <p style={styles.sectionDescription}>
+                    Add an extra layer of security with authenticator app (Google Authenticator, Authy, etc.)
+                  </p>
+                </div>
+                {!totpEnabled && !showTotpSetup && (
+                  <button
+                    type="button"
+                    onClick={handleTotpSetup}
+                    style={styles.enableBtn}
+                    disabled={totpLoading}
+                  >
+                    {totpLoading ? 'Loading...' : 'Enable 2FA'}
+                  </button>
+                )}
+                {totpEnabled && !showTotpDisable && (
+                  <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+                    <span style={styles.enabledBadge}>✓ Enabled</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowTotpDisable(true)}
+                      style={styles.disableBtn}
+                    >
+                      Disable 2FA
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {showTotpSetup && (
+                <div style={styles.setupBox}>
+                  <h3 style={styles.setupTitle}>Scan QR Code</h3>
+                  <p style={styles.setupDescription}>
+                    Scan this QR code with your authenticator app, then enter the 6-digit code to verify.
+                  </p>
+                  {totpQrCode && (
+                    <div style={styles.qrCodeContainer}>
+                      <img src={totpQrCode} alt="TOTP QR Code" style={styles.qrCode} />
+                    </div>
+                  )}
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Verification Code</label>
+                    <input
+                      type="text"
+                      value={totpToken}
+                      onChange={(e) => setTotpToken(e.target.value)}
+                      placeholder="Enter 6-digit code"
+                      maxLength="6"
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.setupActions}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTotpSetup(false);
+                        setTotpToken('');
+                      }}
+                      style={styles.cancelBtn}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTotpConfirm}
+                      style={styles.confirmBtn}
+                      disabled={totpLoading}
+                    >
+                      {totpLoading ? 'Verifying...' : 'Verify & Enable'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {showTotpDisable && (
+                <div style={styles.setupBox}>
+                  <h3 style={styles.setupTitle}>Disable Two-Factor Authentication</h3>
+                  <p style={styles.setupDescription}>
+                    Enter a 6-digit code from your authenticator app to confirm disabling 2FA.
+                  </p>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Verification Code</label>
+                    <input
+                      type="text"
+                      value={totpDisableToken}
+                      onChange={(e) => setTotpDisableToken(e.target.value)}
+                      placeholder="Enter 6-digit code"
+                      maxLength="6"
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.setupActions}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTotpDisable(false);
+                        setTotpDisableToken('');
+                      }}
+                      style={styles.cancelBtn}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTotpDisable}
+                      style={{...styles.deleteBtn, padding: '12px 24px'}}
+                      disabled={totpLoading}
+                    >
+                      {totpLoading ? 'Disabling...' : 'Disable 2FA'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={styles.divider}></div>
+
+            {/* WebAuthn Section */}
+            <div style={styles.authSection}>
+              <div style={styles.authHeader}>
+                <div>
+                  <h2 style={styles.sectionTitle}>Security Keys (WebAuthn)</h2>
+                  <p style={styles.sectionDescription}>
+                    Use hardware security keys or biometric authentication for passwordless login
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWebauthnAdd(true)}
+                  style={styles.enableBtn}
+                  disabled={showWebauthnAdd}
+                >
+                  Add Security Key
+                </button>
+              </div>
+
+              {webauthnCredentials.length > 0 && (
+                <div style={styles.credentialsList}>
+                  {webauthnCredentials.map((cred) => (
+                    <div key={cred.id} style={styles.credentialItem}>
+                      <div>
+                        <div style={styles.credentialName}>🔑 {cred.name}</div>
+                        <div style={styles.credentialDate}>
+                          Added: {new Date(cred.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleWebauthnDelete(cred.id)}
+                        style={styles.deleteBtn}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showWebauthnAdd && (
+                <div style={styles.setupBox}>
+                  <h3 style={styles.setupTitle}>Add Security Key</h3>
+                  <p style={styles.setupDescription}>
+                    Give your security key a name, then follow your browser's prompts.
+                  </p>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Security Key Name</label>
+                    <input
+                      type="text"
+                      value={webauthnName}
+                      onChange={(e) => setWebauthnName(e.target.value)}
+                      placeholder="e.g., YubiKey, Touch ID"
+                      style={styles.input}
+                    />
+                  </div>
+                  <div style={styles.setupActions}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWebauthnAdd(false);
+                        setWebauthnName('');
+                      }}
+                      style={styles.cancelBtn}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWebauthnAdd}
+                      style={styles.confirmBtn}
+                      disabled={webauthnLoading}
+                    >
+                      {webauthnLoading ? 'Adding...' : 'Add Key'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={styles.divider}></div>
+
             <div style={styles.actions}>
               <button
                 type="button"
@@ -398,6 +896,130 @@ const styles = {
     borderRadius: '4px',
     border: '1px solid #f5c6cb',
     marginBottom: '16px',
+  },
+  authSection: {
+    marginTop: '8px',
+  },
+  authHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '16px',
+  },
+  sectionDescription: {
+    fontSize: '14px',
+    color: '#666',
+    marginTop: '8px',
+    marginBottom: '0',
+  },
+  enableBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  disableBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#6c757d',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  enabledBadge: {
+    padding: '8px 16px',
+    backgroundColor: '#d4edda',
+    color: '#155724',
+    border: '1px solid #c3e6cb',
+    borderRadius: '4px',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  setupBox: {
+    backgroundColor: '#f8f9fa',
+    padding: '20px',
+    borderRadius: '6px',
+    marginTop: '16px',
+  },
+  setupTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: '8px',
+  },
+  setupDescription: {
+    fontSize: '14px',
+    color: '#666',
+    marginBottom: '16px',
+  },
+  qrCodeContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '20px',
+    backgroundColor: 'white',
+    borderRadius: '4px',
+    marginBottom: '16px',
+  },
+  qrCode: {
+    maxWidth: '200px',
+    height: 'auto',
+  },
+  setupActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '16px',
+  },
+  confirmBtn: {
+    padding: '12px 24px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  credentialsList: {
+    marginTop: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  credentialItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '6px',
+    border: '1px solid #e0e0e0',
+  },
+  credentialName: {
+    fontSize: '16px',
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: '4px',
+  },
+  credentialDate: {
+    fontSize: '12px',
+    color: '#999',
+  },
+  deleteBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#dc3545',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
   },
 };
 
