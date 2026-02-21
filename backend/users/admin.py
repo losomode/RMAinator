@@ -11,20 +11,30 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ['username', 'email', 'first_name', 'last_name']
     
     def full_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}" if obj.first_name else "-"
+        if obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        elif obj.first_name:
+            return obj.first_name
+        elif obj.last_name:
+            return obj.last_name
+        return "-"
     full_name.short_description = 'Full Name'
     
     def role_badge(self, obj):
+        if not obj or not hasattr(obj, 'role'):
+            return '-'
         color = '#17A2B8' if obj.role == 'ADMIN' else '#6C757D'
         return format_html(
             '<span style="background-color: {}; color: white; padding: 3px 10px; '
             'border-radius: 3px; font-weight: bold; font-size: 11px;">{}</span>',
-            color, obj.role
+            color, obj.get_role_display()
         )
     role_badge.short_description = 'Role'
     role_badge.admin_order_field = 'role'
     
     def verified_badge(self, obj):
+        if not obj:
+            return '-'
         if obj.is_verified:
             return format_html(
                 '<span style="color: #28A745; font-weight: bold;">✓ Verified</span>'

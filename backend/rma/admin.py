@@ -27,6 +27,8 @@ class RMAAdmin(admin.ModelAdmin):
     list_select_related = ['owner', 'group']
     
     def state_badge(self, obj):
+        if not obj or not hasattr(obj, 'state'):
+            return '-'
         colors = {
             'SUBMITTED': '#FFA500',
             'APPROVED': '#28A745',
@@ -42,12 +44,14 @@ class RMAAdmin(admin.ModelAdmin):
         return format_html(
             '<span style="background-color: {}; color: white; padding: 3px 10px; '
             'border-radius: 3px; font-weight: bold;">{}</span>',
-            color, obj.state
+            color, obj.get_state_display()
         )
     state_badge.short_description = 'State'
     state_badge.admin_order_field = 'state'
     
     def priority_badge(self, obj):
+        if not obj or not hasattr(obj, 'priority'):
+            return '-'
         colors = {
             'HIGH': '#DC3545',
             'NORMAL': '#FFC107',
@@ -57,7 +61,7 @@ class RMAAdmin(admin.ModelAdmin):
         return format_html(
             '<span style="background-color: {}; color: white; padding: 3px 10px; '
             'border-radius: 3px; font-size: 11px;">{}</span>',
-            color, obj.priority
+            color, obj.get_priority_display()
         )
     priority_badge.short_description = 'Priority'
     priority_badge.admin_order_field = 'priority'
