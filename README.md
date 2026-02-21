@@ -2,7 +2,7 @@
 
 **A complete RMA device tracking system for managing repair workflows from submission to completion.**
 
-[![Tests](https://img.shields.io/badge/tests-70%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
+[![Tests](https://img.shields.io/badge/tests-81%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-78%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
 
 ---
 
@@ -310,7 +310,7 @@ task backend:test
 task check  # Runs fmt, lint, test, coverage
 ```
 
-**Current Coverage:** 75% (70 passing tests)
+**Current Coverage:** 78% (81 passing tests)
 - Users: 91%
 - Audit: 90%
 - RMA: 80%
