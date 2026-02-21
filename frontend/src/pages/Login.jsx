@@ -81,7 +81,7 @@ const Login = () => {
         
         {/* SSO buttons - uncomment after configuring providers in backend/.env */}
         {/* See AUTH_SETUP.md for configuration instructions */}
-        {/*
+        
         <div style={styles.divider}>
           <div style={styles.dividerLine}></div>
           <span style={styles.dividerText}>OR</span>
@@ -97,7 +97,7 @@ const Login = () => {
             <span style={styles.ssoIcon}>🔐</span>
             Sign in with Google
           </button>
-          
+          {/*
           <button
             onClick={() => handleSSOLogin('microsoft')}
             style={{...styles.ssoButton, ...styles.microsoftButton}}
@@ -124,8 +124,9 @@ const Login = () => {
             <span style={styles.ssoIcon}>🔐</span>
             Sign in with Okta
           </button>
+          */}
         </div>
-        */}
+        
         
         <div style={styles.footer}>
           Don't have an account? <Link to="/register" style={styles.link}>Register</Link>

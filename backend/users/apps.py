@@ -6,3 +6,4 @@ class UsersConfig(AppConfig):
     
     def ready(self):
         import users.signals
+        import users.sso_views  # Import SSO signal handlers

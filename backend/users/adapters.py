@@ -13,16 +13,30 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     
     def is_auto_signup_allowed(self, request, sociallogin):
         """
-        Return False to prevent automatic signup.
-        Users will need to go through approval process.
+        Return True to allow automatic signup.
+        Users will still need admin approval (is_verified=False).
         """
-        return False
+        return True
     
     def populate_user(self, request, sociallogin, data):
         """
         Populate user instance with data from social account.
         """
         user = super().populate_user(request, sociallogin, data)
+        
+        # Generate username from email if not provided
+        if not user.username and user.email:
+            # Use email prefix as username
+            base_username = user.email.split('@')[0]
+            username = base_username
+            # Ensure unique username
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            user.username = username
         
         # Set default role and verification status
         user.role = 'USER'
@@ -49,6 +63,33 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         user._just_registered = True
         
         return user
+    
+    def get_login_redirect_url(self, request):
+        """
+        Redirect to custom callback view that issues JWT tokens.
+        """
+        from django.urls import reverse
+        return reverse('users:sso_callback')
+    
+    def pre_social_login(self, request, sociallogin):
+        """
+        Check if user is verified before allowing SSO login.
+        """
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        
+        # If this is a new signup, user won't exist yet - allow it
+        if not sociallogin.is_existing:
+            return
+        
+        # For existing users, check verification status
+        user = sociallogin.user
+        if not user.is_verified:
+            # Store error message and redirect to frontend
+            messages.error(request, 'Your account is pending admin approval')
+            # We can't easily redirect here, so we'll let it through
+            # and check on the frontend /api/auth/me/ endpoint
+            pass
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):

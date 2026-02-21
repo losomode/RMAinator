@@ -11,38 +11,75 @@ const SSOCallback = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Debug: log all URL parameters
+      console.log('SSO Callback URL params:', {
+        error: searchParams.get('error'),
+        message: searchParams.get('message'),
+        access: searchParams.get('access') ? 'present' : 'missing',
+        refresh: searchParams.get('refresh') ? 'present' : 'missing',
+        allParams: Array.from(searchParams.entries())
+      });
+      
       // Check for error from provider
       const errorParam = searchParams.get('error');
+      const messageParam = searchParams.get('message');
+      
       if (errorParam) {
-        setError(`SSO authentication failed: ${errorParam}`);
-        setStatus('Authentication failed');
-        setTimeout(() => navigate('/login'), 3000);
+        if (errorParam === 'pending_approval') {
+          setError('Your account has been created but is pending admin approval. Please contact your RMAinator administrator to enable your account.');
+          setStatus('Account Pending Approval');
+          setTimeout(() => navigate('/login'), 8000);
+        } else {
+          setError(messageParam || `SSO authentication failed: ${errorParam}`);
+          setStatus('Authentication failed');
+          setTimeout(() => navigate('/login'), 3000);
+        }
         return;
       }
 
-      // The SSO provider should have set a session cookie
-      // Try to fetch the current user to see if authentication succeeded
-      try {
-        setStatus('Completing authentication...');
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/auth/me/`, {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          // Store the user data
-          localStorage.setItem('user', JSON.stringify(userData));
-          localStorage.setItem('token', 'sso_authenticated'); // Placeholder since we're using session
+      // Check if we got JWT tokens from the backend
+      const accessToken = searchParams.get('access');
+      const refreshToken = searchParams.get('refresh');
+      
+      if (accessToken && refreshToken) {
+        try {
+          setStatus('Completing authentication...');
           
-          setStatus('Success! Redirecting...');
-          setTimeout(() => navigate('/dashboard'), 500);
-        } else {
-          throw new Error('Failed to fetch user data');
+          // Fetch user data using the access token
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+          const response = await fetch(`${apiUrl}/api/auth/me/`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            // Store tokens and user data
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            setStatus('Success! Redirecting...');
+            setTimeout(() => navigate('/dashboard'), 500);
+          } else if (response.status === 403) {
+            // Handle 403 - account not verified
+            const errorData = await response.json().catch(() => ({}));
+            setError(errorData.error || 'Your account is pending admin approval. Please contact your RMAinator administrator to enable your account.');
+            setStatus('Account Pending Approval');
+            setTimeout(() => navigate('/login'), 8000);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to fetch user data');
+          }
+        } catch (err) {
+          console.error('SSO callback error:', err);
+          setError('Failed to complete authentication. Please try again.');
+          setStatus('Authentication failed');
+          setTimeout(() => navigate('/login'), 3000);
         }
-      } catch (err) {
-        console.error('SSO callback error:', err);
-        setError('Failed to complete authentication. Please try again.');
+      } else {
+        setError('No authentication data received');
         setStatus('Authentication failed');
         setTimeout(() => navigate('/login'), 3000);
       }
@@ -55,12 +92,19 @@ const SSOCallback = () => {
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>SSO Authentication</h2>
-        <div style={styles.status}>
-          <div style={styles.spinner}></div>
-          <p style={styles.statusText}>{status}</p>
-        </div>
+        {!error && (
+          <div style={styles.status}>
+            <div style={styles.spinner}></div>
+            <p style={styles.statusText}>{status}</p>
+          </div>
+        )}
         {error && (
-          <div style={styles.error}>{error}</div>
+          <div>
+            <div style={styles.statusIcon}>⚠️</div>
+            <h3 style={styles.statusTitle}>{status}</h3>
+            <div style={styles.error}>{error}</div>
+            <p style={styles.redirectMessage}>Redirecting to login page...</p>
+          </div>
         )}
       </div>
     </div>
@@ -111,11 +155,29 @@ const styles = {
   },
   error: {
     marginTop: '20px',
-    padding: '12px',
-    backgroundColor: '#fee',
-    color: '#c33',
+    padding: '16px',
+    backgroundColor: '#fff3cd',
+    color: '#856404',
     borderRadius: '4px',
+    fontSize: '15px',
+    lineHeight: '1.6',
+    border: '1px solid #ffeaa7',
+  },
+  statusIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+  },
+  statusTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: '12px',
+  },
+  redirectMessage: {
+    marginTop: '16px',
     fontSize: '14px',
+    color: '#666',
+    fontStyle: 'italic',
   },
 };
 

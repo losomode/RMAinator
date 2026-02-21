@@ -69,6 +69,20 @@ class CurrentUserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Override retrieve to check verification status."""
+        instance = self.get_object()
+        
+        # Check if user is verified
+        if not instance.is_verified:
+            return Response({
+                'error': 'Your account is pending admin approval. Please contact your RMAinator administrator to enable your account.',
+                'user': UserSerializer(instance).data
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:

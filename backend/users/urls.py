@@ -13,6 +13,7 @@ from .totp_views import (
     TOTPDisableView,
     TOTPStatusView,
 )
+from .sso_views import sso_callback_view
 
 app_name = 'users'
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', CurrentUserView.as_view(), name='current_user'),
+    path('sso/callback/', sso_callback_view, name='sso_callback'),
     
     # Admin user management endpoints
     path('pending/', PendingUsersListView.as_view(), name='pending_users'),
