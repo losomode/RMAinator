@@ -97,7 +97,7 @@ const Login = () => {
             <span style={styles.ssoIcon}>🔐</span>
             Sign in with Google
           </button>
-          {/*
+          
           <button
             onClick={() => handleSSOLogin('microsoft')}
             style={{...styles.ssoButton, ...styles.microsoftButton}}
@@ -106,7 +106,7 @@ const Login = () => {
             <span style={styles.ssoIcon}>🔐</span>
             Sign in with Microsoft
           </button>
-          
+          {/*
           <button
             onClick={() => handleSSOLogin('auth0')}
             style={{...styles.ssoButton, ...styles.auth0Button}}
