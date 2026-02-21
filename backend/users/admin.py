@@ -37,10 +37,12 @@ class UserAdmin(BaseUserAdmin):
             return '-'
         if obj.is_verified:
             return format_html(
-                '<span style="color: #28A745; font-weight: bold;">✓ Verified</span>'
+                '<span style="color: #28A745; font-weight: bold;">{} Verified</span>',
+                '✓'
             )
         return format_html(
-            '<span style="color: #FFC107; font-weight: bold;">⏳ Pending</span>'
+            '<span style="color: #FFC107; font-weight: bold;">{} Pending</span>',
+            '⏳'
         )
     verified_badge.short_description = 'Status'
     verified_badge.admin_order_field = 'is_verified'
