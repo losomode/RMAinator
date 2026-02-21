@@ -2,7 +2,7 @@
 
 **A complete RMA device tracking system for managing repair workflows from submission to completion.**
 
-[![Tests](https://img.shields.io/badge/tests-38%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
+[![Tests](https://img.shields.io/badge/tests-70%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
 
 ---
 
@@ -242,7 +242,10 @@ task frontend:dev
 
 **Authentication Setup:**
 
-For SSO and advanced authentication features, see [AUTH_SETUP.md](AUTH_SETUP.md).
+For SSO setup guides:
+- Google OAuth: See [docs/SSO_TESTING_GUIDE.md](docs/SSO_TESTING_GUIDE.md)
+- Microsoft OAuth: See [docs/MICROSOFT_SSO_SETUP.md](docs/MICROSOFT_SSO_SETUP.md)
+- WebAuthn/2FA details: See [AUTH_SETUP.md](AUTH_SETUP.md)
 
 Quick test TOTP/WebAuthn (no configuration needed):
 1. Register and log in
@@ -307,7 +310,7 @@ task backend:test
 task check  # Runs fmt, lint, test, coverage
 ```
 
-**Current Coverage:** 75% (38 passing tests)
+**Current Coverage:** 75% (70 passing tests)
 - Users: 91%
 - Audit: 90%
 - RMA: 80%
@@ -494,7 +497,7 @@ server {
 - 🔐 **User Registration & Approval** - Register accounts with admin approval workflow
 - 🔑 **Multi-Factor Authentication** - TOTP/2FA with authenticator apps (Google Authenticator, Authy, etc.)
 - 🛡️ **Passwordless Login** - WebAuthn/FIDO2 support for Touch ID, Windows Hello, and hardware security keys
-- 🌐 **Single Sign-On (SSO)** - Ready for Google, Microsoft, Auth0, and Okta (requires configuration)
+- 🌐 **Single Sign-On (SSO)** - Google and Microsoft OAuth (configured), Auth0 and Okta ready for implementation
 - 📦 **Multi-Device RMA Submission** - Submit one or multiple devices in a single request
 - 📎 **File Attachments** - Attach photos, PDFs, and documents to RMAs
 - 📊 **RMA Dashboard** - View active and archived RMAs with status updates
@@ -546,11 +549,11 @@ server {
 - `GET /api/auth/webauthn/credentials/` - List registered keys
 - `DELETE /api/auth/webauthn/credentials/{id}/` - Remove security key
 
-**SSO (requires provider configuration):**
-- `/api/auth/google/login/` - Google OAuth2
-- `/api/auth/microsoft/login/` - Microsoft OAuth2
-- `/api/auth/auth0/login/` - Auth0 OIDC
-- `/api/auth/okta/login/` - Okta OIDC
+**SSO:**
+- `/api/auth/google/login/` - Google OAuth2 ✅
+- `/api/auth/microsoft/login/` - Microsoft OAuth2 ✅
+- `/api/auth/auth0/login/` - Auth0 OIDC (optional, requires configuration)
+- `/api/auth/okta/login/` - Okta OIDC (optional, requires configuration)
 
 ### RMA
 - `GET /api/rma/` - List RMAs
