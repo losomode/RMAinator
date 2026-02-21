@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'rma',
     'notifications',
     'audit',
+    'webauthn_auth',
 ]
 
 MIDDLEWARE = [
