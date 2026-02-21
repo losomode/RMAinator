@@ -27,6 +27,7 @@ admin.site.index_title = "Welcome to RMAinator Administration"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
+    path('api/auth/', include('allauth.urls')),  # SSO providers
     path('api/rma/', include('rma.urls')),
 ]
 

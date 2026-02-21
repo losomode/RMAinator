@@ -43,10 +43,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for allauth
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    # Allauth for SSO
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.microsoft',
+    'allauth.socialaccount.providers.auth0',
+    'allauth.socialaccount.providers.okta',
+    # TOTP/2FA
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'allauth_2fa',
     # Local apps
     'users',
     'rma',
@@ -61,6 +74,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',  # Required for TOTP
+    'allauth.account.middleware.AccountMiddleware',  # Required for allauth
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -189,3 +204,61 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # Admin interface settings
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SILENTED_SYSTEM_CHECKS = ['security.W019']  # X-Frame-Options warning
+
+# Django sites framework
+SITE_ID = 1
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Allauth configuration
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
+
+# Social account configuration
+SOCIALACCOUNT_AUTO_SIGNUP = False  # Require admin approval
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'optional'
+SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_QUERY_EMAIL = True
+
+# SSO Provider settings (configure in production via environment variables)
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID', ''),
+            'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+        }
+    },
+    'microsoft': {
+        'APP': {
+            'client_id': os.environ.get('MICROSOFT_CLIENT_ID', ''),
+            'secret': os.environ.get('MICROSOFT_CLIENT_SECRET', ''),
+        }
+    },
+    'auth0': {
+        'APP': {
+            'client_id': os.environ.get('AUTH0_CLIENT_ID', ''),
+            'secret': os.environ.get('AUTH0_CLIENT_SECRET', ''),
+            'key': '',  # Auth0 domain
+        },
+        'AUTH0_URL': os.environ.get('AUTH0_URL', 'https://your-domain.auth0.com'),
+    },
+    'okta': {
+        'APP': {
+            'client_id': os.environ.get('OKTA_CLIENT_ID', ''),
+            'secret': os.environ.get('OKTA_CLIENT_SECRET', ''),
+        },
+        'OKTA_BASE_URL': os.environ.get('OKTA_BASE_URL', 'https://your-domain.okta.com'),
+    },
+}
+
+# TOTP/2FA settings
+ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = False
