@@ -57,15 +57,17 @@ const Dashboard = () => {
               Admin Dashboard
             </button>
           )}
-          <button 
-            onClick={() => navigate('/profile')} 
-            style={styles.profileBtn}
-            title="Edit Profile"
-          >
-            👤 Profile
-          </button>
           <span style={styles.username}>Welcome, {user?.username}</span>
-          <button onClick={logout} style={styles.logoutBtn}>Logout</button>
+          <div style={styles.buttonGroup}>
+            <button 
+              onClick={() => navigate('/profile')} 
+              style={styles.profileBtn}
+              title="Edit Profile"
+            >
+              👤 Profile
+            </button>
+            <button onClick={logout} style={styles.logoutBtn}>Logout</button>
+          </div>
         </div>
       </div>
 
@@ -330,6 +332,11 @@ const styles = {
   headerRight: {
     display: 'flex',
     gap: '20px',
+    alignItems: 'center',
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '8px',
     alignItems: 'center',
   },
   adminBtn: {
