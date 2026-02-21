@@ -311,10 +311,11 @@ task check  # Runs fmt, lint, test, coverage
 ```
 
 **Current Coverage:** 78% (81 passing tests)
-- Users: 91%
+- Users: 85% (includes SSO, TOTP, WebAuthn)
+- RMA: 94%
 - Audit: 90%
-- RMA: 80%
-- Notifications: 50%
+- Notifications: 62%
+- WebAuthn: 64%
 
 ### Available Tasks
 
@@ -389,18 +390,30 @@ graph TB
 RMAinator/
 ├── backend/
 │   ├── users/              # Authentication & user management
+│   │   ├── adapters.py     # SSO custom adapters
+│   │   ├── sso_views.py    # SSO callback handling
+│   │   ├── totp_views.py   # TOTP/2FA endpoints
+│   │   └── test_sso.py     # SSO tests
 │   ├── rma/                # RMA models, views, serializers
 │   ├── notifications/      # Email & stale RMA detection
 │   ├── audit/              # Audit logging
+│   ├── webauthn_auth/      # WebAuthn/FIDO2 authentication
 │   ├── rmainator/          # Django settings
 │   └── manage.py
 ├── frontend/
 │   └── src/
 │       ├── pages/          # React page components
+│       │   ├── Login.jsx   # Login with SSO buttons
+│       │   ├── Profile.jsx # 2FA & WebAuthn management
+│       │   └── SSOCallback.jsx # SSO redirect handler
 │       ├── services/       # API client
 │       └── contexts/       # Auth context
+├── docs/
+│   ├── SSO_TESTING_GUIDE.md      # Google OAuth setup
+│   └── MICROSOFT_SSO_SETUP.md    # Microsoft OAuth setup
 ├── Taskfile.yml            # Task automation
 ├── README.md
+├── AUTH_SETUP.md           # WebAuthn & 2FA setup
 └── SPECIFICATION.md        # Complete requirements
 ```
 
