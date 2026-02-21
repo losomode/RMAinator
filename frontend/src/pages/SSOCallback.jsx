@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const SSOCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { setUserFromSSO } = useAuth();
   const [error, setError] = useState('');
   const [status, setStatus] = useState('Processing...');
 
@@ -60,8 +60,11 @@ const SSOCallback = () => {
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('user', JSON.stringify(userData));
             
+            // Update AuthContext immediately so user doesn't need to sign in twice
+            setUserFromSSO(userData);
+            
             setStatus('Success! Redirecting...');
-            setTimeout(() => navigate('/dashboard'), 500);
+            setTimeout(() => navigate('/dashboard', { replace: true }), 500);
           } else if (response.status === 403) {
             // Handle 403 - account not verified
             const errorData = await response.json().catch(() => ({}));

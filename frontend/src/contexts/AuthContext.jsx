@@ -78,6 +78,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     setUser(null);
   };
+  
+  const setUserFromSSO = (userData) => {
+    // Used by SSO callback to set user without full login flow
+    setUser(userData);
+  };
 
   const isAdmin = user?.role === 'ADMIN';
   const isVerified = user?.is_verified === true;
@@ -88,6 +93,7 @@ export const AuthProvider = ({ children }) => {
     register,
     updateProfile,
     logout,
+    setUserFromSSO,
     isAdmin,
     isVerified,
     loading,
