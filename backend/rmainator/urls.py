@@ -28,6 +28,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/auth/', include('allauth.urls')),  # SSO providers
+    path('api/auth/', include('webauthn_auth.urls')),  # WebAuthn
     path('api/rma/', include('rma.urls')),
 ]
 
