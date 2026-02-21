@@ -23,6 +23,8 @@
 1. **Register**: Visit the registration page and create an account
 2. **Wait for Approval**: An administrator will approve your account (you'll receive an email)
 3. **Login**: Use your credentials to access the system
+4. **Optional: Enable 2FA**: Go to Profile → Enable Two-Factor Authentication for extra security
+5. **Optional: Add Security Key**: Use Touch ID, Windows Hello, or a hardware key for passwordless login
 
 ### Submitting an RMA
 
@@ -218,6 +220,7 @@ python manage.py check_stale_rmas
 - Python 3.10+
 - Node.js 18+
 - [Task](https://taskfile.dev/) (optional but recommended)
+- Modern browser with WebAuthn support (Chrome, Firefox, Safari 13+) for security keys
 
 ### Quick Start with Taskfile
 
@@ -236,6 +239,15 @@ task frontend:dev
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - Django Admin: http://localhost:8000/admin
+
+**Authentication Setup:**
+
+For SSO and advanced authentication features, see [AUTH_SETUP.md](AUTH_SETUP.md).
+
+Quick test TOTP/WebAuthn (no configuration needed):
+1. Register and log in
+2. Go to Profile page
+3. Enable 2FA or add a security key
 
 ### Manual Setup
 
@@ -399,6 +411,17 @@ DEBUG=False
 SECRET_KEY=your-secret-key-here-change-this
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 
+# WebAuthn (required for security keys)
+WEBAUTHN_RP_ID=yourdomain.com
+WEBAUTHN_RP_NAME=RMAinator
+WEBAUTHN_ORIGIN=https://yourdomain.com
+
+# SSO (optional - see AUTH_SETUP.md for configuration)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-secret
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-microsoft-secret
+
 # Email (SMTP)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -469,12 +492,16 @@ server {
 
 ### User Features
 - 🔐 **User Registration & Approval** - Register accounts with admin approval workflow
+- 🔑 **Multi-Factor Authentication** - TOTP/2FA with authenticator apps (Google Authenticator, Authy, etc.)
+- 🛡️ **Passwordless Login** - WebAuthn/FIDO2 support for Touch ID, Windows Hello, and hardware security keys
+- 🌐 **Single Sign-On (SSO)** - Ready for Google, Microsoft, Auth0, and Okta (requires configuration)
 - 📦 **Multi-Device RMA Submission** - Submit one or multiple devices in a single request
 - 📎 **File Attachments** - Attach photos, PDFs, and documents to RMAs
 - 📊 **RMA Dashboard** - View active and archived RMAs with status updates
 - 🔔 **Email Notifications** - Receive automatic notifications on RMA state changes
 - 📜 **Audit History** - View complete history of RMA changes and status updates
 - 🔍 **RMA Groups** - Track multiple devices submitted together
+- 👤 **Profile Management** - Update account info, change password, manage 2FA and security keys
 
 ### Admin Features
 - ✅ **User Approval** - Approve or reject new user registrations
@@ -492,7 +519,8 @@ server {
 - **Backend:** Django 6.0, Django REST Framework
 - **Frontend:** React 18, Vite, React Router
 - **Database:** SQLite (dev), PostgreSQL-ready (prod)
-- **Authentication:** JWT (JSON Web Tokens)
+- **Authentication:** JWT + Session (hybrid for SSO)
+- **Security:** TOTP/2FA (django-otp), WebAuthn/FIDO2 (py_webauthn), SSO (django-allauth)
 - **Email:** Django email (console dev, SMTP prod)
 - **Testing:** Django TestCase, 75% coverage
 
@@ -501,9 +529,28 @@ server {
 ### Authentication
 - `POST /api/auth/register/` - Register user
 - `POST /api/auth/login/` - Login (get JWT)
-- `GET /api/auth/me/` - Current user
+- `GET /api/auth/me/` - Current user info
+- `PATCH /api/auth/me/` - Update user profile
 - `GET /api/auth/pending/` - Pending users (admin)
 - `POST /api/auth/{id}/approve/` - Approve user (admin)
+
+**TOTP/2FA:**
+- `POST /api/auth/totp/setup/` - Initialize TOTP (returns QR code)
+- `POST /api/auth/totp/confirm/` - Verify and enable TOTP
+- `POST /api/auth/totp/disable/` - Disable TOTP
+- `GET /api/auth/totp/status/` - Check TOTP status
+
+**WebAuthn:**
+- `POST /api/auth/webauthn/register/begin/` - Start security key registration
+- `POST /api/auth/webauthn/register/complete/` - Complete registration
+- `GET /api/auth/webauthn/credentials/` - List registered keys
+- `DELETE /api/auth/webauthn/credentials/{id}/` - Remove security key
+
+**SSO (requires provider configuration):**
+- `/api/auth/google/login/` - Google OAuth2
+- `/api/auth/microsoft/login/` - Microsoft OAuth2
+- `/api/auth/auth0/login/` - Auth0 OIDC
+- `/api/auth/okta/login/` - Okta OIDC
 
 ### RMA
 - `GET /api/rma/` - List RMAs
