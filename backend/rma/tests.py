@@ -256,8 +256,9 @@ class RMAPermissionTests(TestCase):
         response = self.client.get('/api/rma/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['serial_number'], 'SN123')
+        # Response is now a direct list (pagination disabled)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['serial_number'], 'SN123')
     
     def test_admin_can_list_all_rmas(self):
         """Test admin sees all RMAs in list."""
@@ -272,7 +273,8 @@ class RMAPermissionTests(TestCase):
         response = self.client.get('/api/rma/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 2)
+        # Response is now a direct list (pagination disabled)
+        self.assertEqual(len(response.data), 2)
 
 
 class RMASearchFilterTests(TestCase):
