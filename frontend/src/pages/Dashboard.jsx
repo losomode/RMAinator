@@ -195,12 +195,6 @@ const RMAView = ({ rmas, viewMode }) => {
                     <span style={styles.groupCount}>({groupRmas.length} devices)</span>
                   </h3>
                 </div>
-                <button
-                  onClick={() => navigate(`/group/${groupId}`)}
-                  style={styles.viewGroupBtn}
-                >
-                  View All
-                </button>
               </div>
               {isExpanded && (
                 <div style={styles.grid}>
