@@ -33,6 +33,10 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Admin interface (must be before django.contrib.admin)
+    'admin_interface',
+    'colorfield',
+    # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -181,3 +185,7 @@ DEFAULT_FROM_EMAIL = 'noreply@rmainator.local'
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+
+# Admin interface settings
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SILENTED_SYSTEM_CHECKS = ['security.W019']  # X-Frame-Options warning

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import RMA, RMAGroup, RMAStateHistory, RMAAttachment
 
 
@@ -16,11 +17,50 @@ class RMAAttachmentInline(admin.TabularInline):
 
 @admin.register(RMA)
 class RMAAdmin(admin.ModelAdmin):
-    list_display = ['rma_number', 'serial_number', 'owner', 'state', 'priority', 'created_at']
-    list_filter = ['state', 'priority', 'created_at']
-    search_fields = ['rma_number', 'serial_number', 'owner__username', 'owner__email']
+    list_display = ['rma_number', 'serial_number', 'owner', 'state_badge', 'priority_badge', 'created_at', 'updated_at']
+    list_filter = ['state', 'priority', 'created_at', 'owner']
+    search_fields = ['rma_number', 'serial_number', 'owner__username', 'owner__email', 'fault_notes']
     readonly_fields = ['rma_number', 'created_at', 'updated_at', 'years_in_field']
     inlines = [RMAStateHistoryInline, RMAAttachmentInline]
+    list_per_page = 50
+    date_hierarchy = 'created_at'
+    list_select_related = ['owner', 'group']
+    
+    def state_badge(self, obj):
+        colors = {
+            'SUBMITTED': '#FFA500',
+            'APPROVED': '#28A745',
+            'REJECTED': '#DC3545',
+            'RECEIVED': '#17A2B8',
+            'DIAGNOSED': '#6C757D',
+            'REPAIRED': '#007BFF',
+            'REPLACED': '#007BFF',
+            'SHIPPED': '#28A745',
+            'COMPLETED': '#6C757D',
+        }
+        color = colors.get(obj.state, '#999999')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 10px; '
+            'border-radius: 3px; font-weight: bold;">{}</span>',
+            color, obj.state
+        )
+    state_badge.short_description = 'State'
+    state_badge.admin_order_field = 'state'
+    
+    def priority_badge(self, obj):
+        colors = {
+            'HIGH': '#DC3545',
+            'NORMAL': '#FFC107',
+            'LOW': '#6C757D',
+        }
+        color = colors.get(obj.priority, '#999999')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 10px; '
+            'border-radius: 3px; font-size: 11px;">{}</span>',
+            color, obj.priority
+        )
+    priority_badge.short_description = 'Priority'
+    priority_badge.admin_order_field = 'priority'
     
     fieldsets = (
         ('Basic Information', {
