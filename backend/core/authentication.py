@@ -24,6 +24,8 @@ class AuthinatorUser:
         self.is_verified = user_data.get('is_verified', False)
         self.is_active = user_data.get('is_active', False)
         self.is_authenticated = True
+        # Add is_admin property for backward compatibility
+        self.is_admin = self.role in ['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']
     
     def is_system_admin(self):
         """Check if user is a system admin."""
