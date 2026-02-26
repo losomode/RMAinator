@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_totp',
     'allauth_2fa',
     # Local apps
+    'core',
     'users',
     'rma',
     'notifications',
@@ -165,11 +166,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
+# Authinator configuration
+AUTHINATOR_API_URL = os.getenv('AUTHINATOR_API_URL', 'http://localhost:8000/api/auth/')
+AUTHINATOR_VERIFY_SSL = os.getenv('AUTHINATOR_VERIFY_SSL', 'False').lower() == 'true'
+
+# Service Registry configuration
+SERVICE_REGISTRY_URL = os.getenv('SERVICE_REGISTRY_URL', 'http://localhost:8000/api/services/register/')
+SERVICE_REGISTRATION_KEY = os.getenv('SERVICE_REGISTRATION_KEY', 'dev-service-key-change-in-production')
+
 # REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # For SSO
+        'core.authentication.AuthinatorJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -193,8 +201,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
 ]
 
 CORS_ALLOW_CREDENTIALS = True

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { getToken, redirectToLogin } from '../utils/auth';
 
 const AuthContext = createContext(null);
 
@@ -8,48 +9,35 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load user from localStorage on mount
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('accessToken');
+    // Fetch current user from Authinator
+    const loadUser = async () => {
+      const token = getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await authAPI.getCurrentUser();
+        setUser(response.data);
+      } catch (error) {
+        console.error('Failed to load user:', error);
+        // Token invalid, will be handled by API interceptor
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    loadUser();
   }, []);
 
-  const login = async (username, password) => {
-    try {
-      const response = await authAPI.login({ username, password });
-      const { access, refresh, user: userData } = response.data;
-      
-      localStorage.setItem('accessToken', access);
-      localStorage.setItem('refreshToken', refresh);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Login failed'
-      };
-    }
+  // Login/register are now handled by Authinator
+  const login = () => {
+    redirectToLogin();
   };
 
-  const register = async (userData) => {
-    try {
-      const response = await authAPI.register(userData);
-      return {
-        success: true,
-        message: response.data.message
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data || 'Registration failed'
-      };
-    }
+  const register = () => {
+    redirectToLogin();
   };
 
   const updateProfile = async (profileData) => {
@@ -73,10 +61,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    // Clear token and redirect to Authinator
+    localStorage.removeItem('auth_token');
     setUser(null);
+    redirectToLogin();
   };
   
   const setUserFromSSO = (userData) => {
