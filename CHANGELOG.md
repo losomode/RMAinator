@@ -50,13 +50,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authentication: JWT + django-allauth + django-otp + webauthn
 - Testing: Django TestCase framework
 
+## [2.0.0] - 2026-02-26
+
+### Changed
+- **BREAKING:** Migrated authentication to external Authinator service
+- All user authentication now handled by Authinator (registration, login, SSO, 2FA, WebAuthn)
+- JWT tokens now issued and validated by Authinator
+- Removed local user management, TOTP, WebAuthn, and SSO implementations
+- Updated architecture to use Authinator API for user validation
+
+### Removed
+- `backend/users/` app (replaced by Authinator integration)
+- `backend/webauthn_auth/` app (moved to Authinator)
+- Local SSO implementations (Google, Microsoft OAuth)
+- Local TOTP/2FA implementation
+- Local WebAuthn/FIDO2 implementation
+- AUTH_SETUP.md documentation
+- docs/SSO_TESTING_GUIDE.md
+- docs/MICROSOFT_SSO_SETUP.md
+
+### Added
+- `backend/core/authentication.py` - Authinator JWT authentication
+- `backend/core/authinator_client.py` - Authinator API client
+- Authinator configuration via environment variables
+
 ## [Unreleased]
 
 ### Planned
-- Auth0 SSO provider (optional)
-- Okta SSO provider (optional)
-- Admin configuration panel for auth methods
-- Password reset via email
 - Enhanced dashboard metrics
 - Export to Excel/CSV
 

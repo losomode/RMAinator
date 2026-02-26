@@ -36,19 +36,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1>RMAinator - Admin Dashboard</h1>
-        <div style={styles.headerRight}>
-          <button onClick={() => navigate('/dashboard')} style={styles.userDashBtn}>
-            User Dashboard
-          </button>
-          <span style={styles.username}>Admin: {user?.username}</span>
-          <button onClick={logout} style={styles.logoutBtn}>Logout</button>
-        </div>
-      </div>
-
-      <div style={styles.content}>
+    <>
         {error && <div style={styles.error}>{error}</div>}
 
         {loading ? (
@@ -171,8 +159,7 @@ const AdminDashboard = () => {
             </div>
           </>
         ) : null}
-      </div>
-    </div>
+    </>
   );
 };
 

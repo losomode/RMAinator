@@ -36,11 +36,17 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
+// Auth API - calls AUTHinator directly
+const AUTHINATOR_URL = 'http://localhost:8000';
 export const authAPI = {
   register: (data) => api.post('/auth/register/', data),
   login: (data) => api.post('/auth/login/', data),
-  getCurrentUser: () => api.get('/auth/me/'),
+  getCurrentUser: () => {
+    const token = getToken();
+    return axios.get(`${AUTHINATOR_URL}/api/auth/me/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
   updateProfile: (data) => api.patch('/auth/me/', data),
   getPendingUsers: () => api.get('/auth/pending/'),
   approveUser: (userId, approve) => 

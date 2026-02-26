@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
@@ -11,17 +11,27 @@ import CreateRMA from './pages/CreateRMA';
 import { getToken, setToken, redirectToLogin } from './utils/auth';
 
 function App() {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
+    // Handle token from URL parameter FIRST
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
     
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
       window.history.replaceState({}, document.title, window.location.pathname);
+      setIsReady(true);
     } else if (!getToken()) {
       redirectToLogin();
+    } else {
+      setIsReady(true);
     }
   }, []);
+
+  if (!isReady) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <BrowserRouter>

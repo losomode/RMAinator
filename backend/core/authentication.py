@@ -80,10 +80,7 @@ class AuthinatorJWTAuthentication(authentication.BaseAuthentication):
         if user_data is None:
             raise exceptions.AuthenticationFailed('Invalid or expired token')
         
-        if not user_data.get('is_verified'):
-            raise exceptions.AuthenticationFailed('User account is not verified')
-        
-        if not user_data.get('is_active'):
+        if not user_data.get('is_active', True):
             raise exceptions.AuthenticationFailed('User account is not active')
         
         # Create user object

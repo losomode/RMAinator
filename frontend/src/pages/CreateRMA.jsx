@@ -15,22 +15,8 @@ const CreateRMA = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { user, isVerified } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  if (!isVerified) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <h2>Account Not Verified</h2>
-          <p>Your account must be verified by an admin before you can create RMAs.</p>
-          <button onClick={() => navigate('/dashboard')} style={styles.button}>
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const handleDeviceChange = (index, field, value) => {
     const newDevices = [...devices];
@@ -89,13 +75,7 @@ const CreateRMA = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button onClick={() => navigate('/dashboard')} style={styles.backBtn}>
-          ← Back to Dashboard
-        </button>
-      </div>
-
+    <div>
       <div style={styles.card}>
         <h1 style={styles.title}>Create New RMA</h1>
         <p style={styles.subtitle}>Submit one or more devices for RMA processing</p>

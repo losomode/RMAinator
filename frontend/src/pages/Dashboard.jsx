@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [viewMode, setViewMode] = useState('all'); // 'all', 'individual', 'byGroup'
   
-  const { user, logout, isVerified, isAdmin } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,49 +29,8 @@ const Dashboard = () => {
     }
   };
 
-  if (!isVerified) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h1>RMAinator</h1>
-          <button onClick={logout} style={styles.logoutBtn}>Logout</button>
-        </div>
-        <div style={styles.card}>
-          <h2>Pending Approval</h2>
-          <p>Your account is pending admin approval. Please wait for an administrator to verify your account.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1>RMAinator</h1>
-        <div style={styles.headerRight}>
-          {isAdmin && (
-            <button 
-              onClick={() => navigate('/admin')} 
-              style={styles.adminBtn}
-            >
-              Admin Dashboard
-            </button>
-          )}
-          <span style={styles.username}>Welcome, {user?.username}</span>
-          <div style={styles.buttonGroup}>
-            <button 
-              onClick={() => navigate('/profile')} 
-              style={styles.profileBtn}
-              title="Edit Profile"
-            >
-              👤 Profile
-            </button>
-            <button onClick={logout} style={styles.logoutBtn}>Logout</button>
-          </div>
-        </div>
-      </div>
-
-      <div style={styles.content}>
+    <>
         <div style={styles.toolbar}>
           <h2>My RMAs</h2>
           <div style={styles.actions}>
@@ -134,8 +93,7 @@ const Dashboard = () => {
         ) : (
           <RMAView rmas={rmas} viewMode={viewMode} />
         )}
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -305,71 +263,6 @@ const RMACard = ({ rma }) => {
 };
 
 const styles = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    width: '100%',
-    margin: 0,
-    padding: 0,
-  },
-  header: {
-    backgroundColor: 'white',
-    padding: '20px 60px',
-    borderBottom: '1px solid #ddd',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '20px',
-    alignItems: 'center',
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-  },
-  adminBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#17a2b8',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  profileBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  username: {
-    fontSize: '14px',
-    color: '#666',
-  },
-  logoutBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  content: {
-    padding: '32px 60px 60px',
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-  },
   toolbar: {
     display: 'flex',
     justifyContent: 'space-between',

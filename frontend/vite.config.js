@@ -6,5 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3001,
+    strictPort: true,  // Fail if port is taken instead of trying another
+    open: false,
+  },
+  build: {
+    outDir: 'build',
   },
 })

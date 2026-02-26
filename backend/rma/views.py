@@ -1,9 +1,10 @@
 from rest_framework import generics, status, views, filters
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
-from users.permissions import IsAdmin, IsAdminOrVerifiedUser
+from users.permissions import IsAdmin
 from .models import RMA, RMAAttachment, RMAGroup
 from .serializers import (
     RMAListSerializer, RMADetailSerializer, RMACreateSerializer,
@@ -16,7 +17,7 @@ from audit.serializers import AuditLogSerializer
 
 class RMAListCreateView(generics.ListCreateAPIView):
     """API endpoint to list and create RMAs."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = None  # Disable pagination - show all RMAs
     
     def get_serializer_class(self):
@@ -45,7 +46,7 @@ class RMAListCreateView(generics.ListCreateAPIView):
 
 class RMADetailView(generics.RetrieveUpdateDestroyAPIView):
     """API endpoint to retrieve, update, or delete an RMA."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -110,7 +111,7 @@ class RMAStateUpdateView(views.APIView):
 
 class RMAAttachmentUploadView(views.APIView):
     """API endpoint to upload attachments to an RMA."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser)
     
     def post(self, request, pk):
@@ -152,7 +153,7 @@ class RMAAttachmentUploadView(views.APIView):
 
 class RMAAttachmentDeleteView(generics.DestroyAPIView):
     """API endpoint to delete an attachment."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     queryset = RMAAttachment.objects.all()
     
     def get_queryset(self):
@@ -168,7 +169,7 @@ class RMAAttachmentDeleteView(generics.DestroyAPIView):
 
 class RMAGroupCreateView(views.APIView):
     """API endpoint to create multiple RMAs in a group."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     
     def post(self, request):
         serializer = RMAGroupCreateSerializer(
@@ -232,7 +233,7 @@ class RMASearchView(generics.ListAPIView):
 
 class RMAAuditHistoryView(generics.ListAPIView):
     """API endpoint to get audit history for a specific RMA."""
-    permission_classes = (IsAdminOrVerifiedUser,)
+    permission_classes = (IsAuthenticated,)
     serializer_class = AuditLogSerializer
     
     def get_queryset(self):

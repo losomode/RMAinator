@@ -2,7 +2,7 @@
 
 **A complete RMA device tracking system for managing repair workflows from submission to completion.**
 
-[![Tests](https://img.shields.io/badge/tests-81%20passing-green)]() [![Coverage](https://img.shields.io/badge/coverage-78%25-brightgreen)]() [![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
+[![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
 
 ---
 
@@ -22,9 +22,7 @@
 
 1. **Register**: Visit the registration page and create an account
 2. **Wait for Approval**: An administrator will approve your account (you'll receive an email)
-3. **Login**: Use your credentials to access the system
-4. **Optional: Enable 2FA**: Go to Profile → Enable Two-Factor Authentication for extra security
-5. **Optional: Add Security Key**: Use Touch ID, Windows Hello, or a hardware key for passwordless login
+3. **Login**: Use your credentials to access the system (authentication is handled by Authinator)
 
 ### Submitting an RMA
 
@@ -220,7 +218,7 @@ python manage.py check_stale_rmas
 - Python 3.10+
 - Node.js 18+
 - [Task](https://taskfile.dev/) (optional but recommended)
-- Modern browser with WebAuthn support (Chrome, Firefox, Safari 13+) for security keys
+- Access to Authinator authentication service
 
 ### Quick Start with Taskfile
 
@@ -242,15 +240,12 @@ task frontend:dev
 
 **Authentication Setup:**
 
-For SSO setup guides:
-- Google OAuth: See [docs/SSO_TESTING_GUIDE.md](docs/SSO_TESTING_GUIDE.md)
-- Microsoft OAuth: See [docs/MICROSOFT_SSO_SETUP.md](docs/MICROSOFT_SSO_SETUP.md)
-- WebAuthn/2FA details: See [AUTH_SETUP.md](AUTH_SETUP.md)
+Authentication is handled by the external **Authinator** service. Configure the following environment variables:
 
-Quick test TOTP/WebAuthn (no configuration needed):
-1. Register and log in
-2. Go to Profile page
-3. Enable 2FA or add a security key
+```bash
+AUTHINATOR_API_URL=https://your-authinator-instance.com/api
+AUTHINATOR_API_KEY=your-authinator-api-key
+```
 
 ### Manual Setup
 
@@ -275,18 +270,9 @@ npm run dev
 ### Create Admin User
 
 ```bash
-cd backend
-python manage.py createsuperuser
-
-# Then set admin role
-python manage.py shell -c "
-from users.models import User
-u = User.objects.get(username='admin')
-u.role = 'ADMIN'
-u.is_verified = True
-u.save()
-print('✓ Admin user configured')
-"
+# Admin users are managed in Authinator
+# Create an admin user in Authinator with role='ADMIN'
+# No local user management required
 ```
 
 ### Import Sample Data
@@ -310,12 +296,7 @@ task backend:test
 task check  # Runs fmt, lint, test, coverage
 ```
 
-**Current Coverage:** 78% (81 passing tests)
-- Users: 85% (includes SSO, TOTP, WebAuthn)
-- RMA: 94%
-- Audit: 90%
-- Notifications: 62%
-- WebAuthn: 64%
+**Current Coverage:** Test coverage metrics available via `task test:coverage`
 
 ### Available Tasks
 
@@ -345,13 +326,16 @@ graph TB
     
     subgraph Backend["🖥️ Backend Server"]
         API[Django REST API<br/>Port 8000]
-        Auth[JWT Authentication]
+        Auth[Authinator JWT Auth]
         subgraph Apps["Django Apps"]
-            Users[users<br/>Auth & Approval]
             RMA[rma<br/>Device Tracking]
             Notif[notifications<br/>Email & Alerts]
             Audit[audit<br/>Change History]
         end
+    end
+    
+    subgraph AuthService["🔐 Authinator"]
+        AuthAPI[Authentication API]
     end
     
     subgraph Storage["💾 Storage"]
@@ -364,13 +348,13 @@ graph TB
     end
     
     UI -->|HTTP + JWT| API
+    UI -->|Login/Register| AuthAPI
     API --> Auth
-    Auth --> Users
+    Auth -->|Validate Token| AuthAPI
     API --> RMA
     API --> Notif
     API --> Audit
     
-    Users --> DB
     RMA --> DB
     Notif --> DB
     Audit --> DB
@@ -389,31 +373,22 @@ graph TB
 ```
 RMAinator/
 ├── backend/
-│   ├── users/              # Authentication & user management
-│   │   ├── adapters.py     # SSO custom adapters
-│   │   ├── sso_views.py    # SSO callback handling
-│   │   ├── totp_views.py   # TOTP/2FA endpoints
-│   │   └── test_sso.py     # SSO tests
-│   ├── rma/                # RMA models, views, serializers
-│   ├── notifications/      # Email & stale RMA detection
-│   ├── audit/              # Audit logging
-│   ├── webauthn_auth/      # WebAuthn/FIDO2 authentication
-│   ├── rmainator/          # Django settings
+│   ├── core/
+│   │   ├── authentication.py      # Authinator JWT authentication
+│   │   └── authinator_client.py   # Authinator API client
+│   ├── rma/                       # RMA models, views, serializers
+│   ├── notifications/             # Email & stale RMA detection
+│   ├── audit/                     # Audit logging
+│   ├── rmainator/                 # Django settings
 │   └── manage.py
 ├── frontend/
 │   └── src/
 │       ├── pages/          # React page components
-│       │   ├── Login.jsx   # Login with SSO buttons
-│       │   ├── Profile.jsx # 2FA & WebAuthn management
-│       │   └── SSOCallback.jsx # SSO redirect handler
+│       │   └── Login.jsx   # Login form (redirects to Authinator)
 │       ├── services/       # API client
 │       └── contexts/       # Auth context
-├── docs/
-│   ├── SSO_TESTING_GUIDE.md      # Google OAuth setup
-│   └── MICROSOFT_SSO_SETUP.md    # Microsoft OAuth setup
 ├── Taskfile.yml            # Task automation
 ├── README.md
-├── AUTH_SETUP.md           # WebAuthn & 2FA setup
 └── SPECIFICATION.md        # Complete requirements
 ```
 
@@ -427,16 +402,9 @@ DEBUG=False
 SECRET_KEY=your-secret-key-here-change-this
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 
-# WebAuthn (required for security keys)
-WEBAUTHN_RP_ID=yourdomain.com
-WEBAUTHN_RP_NAME=RMAinator
-WEBAUTHN_ORIGIN=https://yourdomain.com
-
-# SSO (optional - see AUTH_SETUP.md for configuration)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-secret
-MICROSOFT_CLIENT_ID=your-microsoft-client-id
-MICROSOFT_CLIENT_SECRET=your-microsoft-secret
+# Authinator (required for authentication)
+AUTHINATOR_API_URL=https://your-authinator-instance.com/api
+AUTHINATOR_API_KEY=your-authinator-api-key
 
 # Email (SMTP)
 EMAIL_HOST=smtp.gmail.com
@@ -507,17 +475,13 @@ server {
 ## 🎯 Features
 
 ### User Features
-- 🔐 **User Registration & Approval** - Register accounts with admin approval workflow
-- 🔑 **Multi-Factor Authentication** - TOTP/2FA with authenticator apps (Google Authenticator, Authy, etc.)
-- 🛡️ **Passwordless Login** - WebAuthn/FIDO2 support for Touch ID, Windows Hello, and hardware security keys
-- 🌐 **Single Sign-On (SSO)** - Google and Microsoft OAuth (configured), Auth0 and Okta ready for implementation
+- 🔐 **User Authentication** - Secure authentication via Authinator service
 - 📦 **Multi-Device RMA Submission** - Submit one or multiple devices in a single request
 - 📎 **File Attachments** - Attach photos, PDFs, and documents to RMAs
 - 📊 **RMA Dashboard** - View active and archived RMAs with status updates
 - 🔔 **Email Notifications** - Receive automatic notifications on RMA state changes
 - 📜 **Audit History** - View complete history of RMA changes and status updates
 - 🔍 **RMA Groups** - Track multiple devices submitted together
-- 👤 **Profile Management** - Update account info, change password, manage 2FA and security keys
 
 ### Admin Features
 - ✅ **User Approval** - Approve or reject new user registrations
@@ -535,38 +499,16 @@ server {
 - **Backend:** Django 6.0, Django REST Framework
 - **Frontend:** React 18, Vite, React Router
 - **Database:** SQLite (dev), PostgreSQL-ready (prod)
-- **Authentication:** JWT + Session (hybrid for SSO)
-- **Security:** TOTP/2FA (django-otp), WebAuthn/FIDO2 (py_webauthn), SSO (django-allauth)
+- **Authentication:** Authinator JWT (external service)
 - **Email:** Django email (console dev, SMTP prod)
-- **Testing:** Django TestCase, 75% coverage
+- **Testing:** Django TestCase
 
 ## 📊 API Documentation
 
 ### Authentication
-- `POST /api/auth/register/` - Register user
-- `POST /api/auth/login/` - Login (get JWT)
-- `GET /api/auth/me/` - Current user info
-- `PATCH /api/auth/me/` - Update user profile
-- `GET /api/auth/pending/` - Pending users (admin)
-- `POST /api/auth/{id}/approve/` - Approve user (admin)
+Authentication is handled by the external **Authinator** service. All user registration, login, profile management, and advanced authentication features (SSO, 2FA, WebAuthn) are managed through Authinator.
 
-**TOTP/2FA:**
-- `POST /api/auth/totp/setup/` - Initialize TOTP (returns QR code)
-- `POST /api/auth/totp/confirm/` - Verify and enable TOTP
-- `POST /api/auth/totp/disable/` - Disable TOTP
-- `GET /api/auth/totp/status/` - Check TOTP status
-
-**WebAuthn:**
-- `POST /api/auth/webauthn/register/begin/` - Start security key registration
-- `POST /api/auth/webauthn/register/complete/` - Complete registration
-- `GET /api/auth/webauthn/credentials/` - List registered keys
-- `DELETE /api/auth/webauthn/credentials/{id}/` - Remove security key
-
-**SSO:**
-- `/api/auth/google/login/` - Google OAuth2 ✅
-- `/api/auth/microsoft/login/` - Microsoft OAuth2 ✅
-- `/api/auth/auth0/login/` - Auth0 OIDC (optional, requires configuration)
-- `/api/auth/okta/login/` - Okta OIDC (optional, requires configuration)
+RMAinator validates JWT tokens issued by Authinator for API access.
 
 ### RMA
 - `GET /api/rma/` - List RMAs

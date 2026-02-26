@@ -73,7 +73,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = user?.role === 'ADMIN';
-  const isVerified = user?.is_verified === true;
 
   const value = {
     user,
@@ -83,7 +82,6 @@ export const AuthProvider = ({ children }) => {
     logout,
     setUserFromSSO,
     isAdmin,
-    isVerified,
     loading,
   };
 
