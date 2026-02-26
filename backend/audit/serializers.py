@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import AuditLog
-from users.serializers import UserSerializer
+from core.serializers import UserSerializer
 
 
 class AuditLogSerializer(serializers.ModelSerializer):

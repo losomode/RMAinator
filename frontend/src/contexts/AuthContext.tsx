@@ -1,16 +1,19 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authAPI } from '../services/api';
 import { getToken, redirectToLogin } from '../utils/auth';
+import type { User, AuthContextValue, ProfileUpdateData, ProfileUpdateResult } from '../types';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+interface AuthProviderProps { children: ReactNode; }
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // Fetch current user from Authinator
-    const loadUser = async () => {
+    const loadUser = async (): Promise<void> => {
       const token = getToken();
       if (!token) {
         setLoading(false);
@@ -32,15 +35,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login/register are now handled by Authinator
-  const login = () => {
+  const login = (): void => {
     redirectToLogin();
   };
 
-  const register = () => {
+  const register = (): void => {
     redirectToLogin();
   };
 
-  const updateProfile = async (profileData) => {
+  const updateProfile = async (profileData: ProfileUpdateData): Promise<ProfileUpdateResult> => {
     try {
       const response = await authAPI.updateProfile(profileData);
       const { user: updatedUser } = response.data;
@@ -52,43 +55,45 @@ export const AuthProvider = ({ children }) => {
         success: true,
         message: response.data.message
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: string | Record<string, string | string[]> } };
       return {
         success: false,
-        error: error.response?.data || 'Profile update failed'
+        error: axiosError.response?.data || 'Profile update failed',
       };
     }
   };
 
-  const logout = () => {
+  const logout = (): void => {
     // Clear token and redirect to Authinator
     localStorage.removeItem('auth_token');
     setUser(null);
     redirectToLogin();
   };
   
-  const setUserFromSSO = (userData) => {
+  const setUserFromSSO = (userData: User): void => {
     // Used by SSO callback to set user without full login flow
     setUser(userData);
   };
 
   const isAdmin = user?.role === 'ADMIN';
 
-  const value = {
+  const value: AuthContextValue = {
     user,
     login,
     register,
     updateProfile,
     logout,
     setUserFromSSO,
-    isAdmin,
+    isAdmin: isAdmin ?? false,
     loading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');

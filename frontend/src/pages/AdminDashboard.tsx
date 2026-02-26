@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { rmaAPI } from '../services/api';
+import type { AdminDashboardMetrics } from '../types';
 
 const AdminDashboard = () => {
-  const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [metrics, setMetrics] = useState<AdminDashboardMetrics | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
   
-  const { user, logout, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,14 +18,14 @@ const AdminDashboard = () => {
       return;
     }
     loadMetrics();
-  }, [isAdmin]);
+  }, [isAdmin, navigate]);
 
-  const loadMetrics = async () => {
+  const loadMetrics = async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await rmaAPI.getAdminDashboard();
       setMetrics(response.data);
-    } catch (err) {
+    } catch {
       setError('Failed to load dashboard metrics');
     } finally {
       setLoading(false);
@@ -112,7 +113,7 @@ const AdminDashboard = () => {
             {/* Stale RMAs */}
             {metrics.stale_rmas.length > 0 && (
               <div style={styles.section}>
-                <h2>⚠️ Stale RMAs (>7 days in current state)</h2>
+                <h2>⚠️ Stale RMAs ({'>'}7 days in current state)</h2>
                 <div style={styles.table}>
                   {metrics.stale_rmas.map((rma) => (
                     <div
@@ -163,15 +164,19 @@ const AdminDashboard = () => {
   );
 };
 
-const MetricCard = ({ title, value, color }) => (
+interface MetricCardProps { title: string; value: number; color: string; }
+
+const MetricCard = ({ title, value, color }: MetricCardProps) => (
   <div style={{...styles.card, borderLeft: `4px solid ${color}`}}>
     <div style={styles.cardTitle}>{title}</div>
     <div style={{...styles.cardValue, color}}>{value}</div>
   </div>
 );
 
-const StateCard = ({ state, count }) => {
-  const colors = {
+interface StateCardProps { state: string; count: number; }
+
+const StateCard = ({ state, count }: StateCardProps) => {
+  const colors: Record<string, string> = {
     SUBMITTED: '#ffa500',
     APPROVED: '#28a745',
     REJECTED: '#dc3545',
@@ -193,7 +198,7 @@ const StateCard = ({ state, count }) => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

@@ -1,15 +1,15 @@
 const AUTH_TOKEN_KEY = 'auth_token';
-const AUTHINATOR_URL = 'http://localhost:3000';
+const AUTHINATOR_URL = import.meta.env.VITE_AUTHINATOR_FRONTEND_URL || 'http://localhost:3001';
 
-export const getToken = () => {
+export const getToken = (): string | null => {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 };
 
-export const setToken = (token) => {
+export const setToken = (token: string): void => {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
 };
 
-export const clearToken = () => {
+export const clearToken = (): void => {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   // Also clear old auth tokens if they exist
   localStorage.removeItem('accessToken');
@@ -17,16 +17,16 @@ export const clearToken = () => {
   localStorage.removeItem('user');
 };
 
-export const redirectToLogin = () => {
+export const redirectToLogin = (): void => {
   const currentUrl = window.location.href;
   window.location.href = `${AUTHINATOR_URL}/login?redirect=${encodeURIComponent(currentUrl)}`;
 };
 
-export const redirectToServices = () => {
+export const redirectToServices = (): void => {
   window.location.href = AUTHINATOR_URL;
 };
 
-export const handleLogout = () => {
+export const handleLogout = (): void => {
   clearToken();
   redirectToLogin();
 };

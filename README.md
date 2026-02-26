@@ -418,19 +418,6 @@ DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 DATABASE_URL=postgresql://user:pass@localhost/rmainator
 ```
 
-**Docker Deployment:**
-
-```bash
-# Build and run
-docker-compose up -d
-
-# Run migrations
-docker-compose exec backend python manage.py migrate
-
-# Create superuser
-docker-compose exec backend python manage.py createsuperuser
-```
-
 **Scheduled Tasks (cron):**
 
 ```bash

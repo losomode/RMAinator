@@ -1,30 +1,29 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { rmaAPI } from '../services/api';
+import type { RMADevice, RMAPriority } from '../types';
 
 const CreateRMA = () => {
-  const [devices, setDevices] = useState([
+  const [devices, setDevices] = useState<RMADevice[]>([
     {
       serial_number: '',
       first_ship_date: '',
       fault_notes: '',
     }
   ]);
-  const [priority, setPriority] = useState('NORMAL');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [priority, setPriority] = useState<RMAPriority>('NORMAL');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
   
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleDeviceChange = (index, field, value) => {
+  const handleDeviceChange = (index: number, field: keyof RMADevice, value: string): void => {
     const newDevices = [...devices];
     newDevices[index][field] = value;
     setDevices(newDevices);
   };
 
-  const addDevice = () => {
+  const addDevice = (): void => {
     setDevices([
       ...devices,
       {
@@ -35,13 +34,13 @@ const CreateRMA = () => {
     ]);
   };
 
-  const removeDevice = (index) => {
+  const removeDevice = (index: number): void => {
     if (devices.length === 1) return; // Keep at least one device
     const newDevices = devices.filter((_, i) => i !== index);
     setDevices(newDevices);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -64,12 +63,13 @@ const CreateRMA = () => {
         priority: priority,
       }));
 
-      const response = await rmaAPI.createGroup({ rmas: rmasData });
+      await rmaAPI.createGroup({ rmas: rmasData });
 
       // Success - redirect to dashboard
       navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create RMA group');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } } };
+      setError(axiosError.response?.data?.detail || 'Failed to create RMA group');
       setLoading(false);
     }
   };
@@ -90,7 +90,7 @@ const CreateRMA = () => {
             </label>
             <select
               value={priority}
-              onChange={(e) => setPriority(e.target.value)}
+              onChange={(e) => setPriority(e.target.value as RMAPriority)}
               style={styles.select}
               required
               disabled={loading}
@@ -160,7 +160,7 @@ const CreateRMA = () => {
                     onChange={(e) => handleDeviceChange(index, 'fault_notes', e.target.value)}
                     style={styles.textarea}
                     placeholder="Describe the issue with this device..."
-                    rows="4"
+                    rows={4}
                     disabled={loading}
                   />
                 </div>
@@ -202,7 +202,7 @@ const CreateRMA = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

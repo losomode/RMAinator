@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import type { RegisterFormData } from '../types';
 
 const Register = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     username: '',
     email: '',
     first_name: '',
@@ -11,42 +12,23 @@ const Register = () => {
     password: '',
     password2: '',
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, _setError] = useState<string>('');
+  const [success, _setSuccess] = useState<string>('');
+  const [loading, _setLoading] = useState<boolean>(false);
   
   const { register } = useAuth();
-  const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    if (formData.password !== formData.password2) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    const result = await register(formData);
-    
-    if (result.success) {
-      setSuccess(result.message);
-      setTimeout(() => navigate('/login'), 3000);
-    } else {
-      setError(typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
-    }
-    
-    setLoading(false);
+    // Auth is handled by Authinator - redirect
+    register();
   };
 
   return (
@@ -152,7 +134,7 @@ const Register = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     display: 'flex',

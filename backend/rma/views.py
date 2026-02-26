@@ -4,7 +4,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
-from users.permissions import IsAdmin
+from core.permissions import IsAdmin
 from .models import RMA, RMAAttachment, RMAGroup
 from .serializers import (
     RMAListSerializer, RMADetailSerializer, RMACreateSerializer,

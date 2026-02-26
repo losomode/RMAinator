@@ -21,6 +21,7 @@ function App() {
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
       window.history.replaceState({}, document.title, window.location.pathname);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReady(true);
     } else if (!getToken()) {
       redirectToLogin();

@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
+import type { User } from '../types';
 
 const AdminUserApproval = () => {
-  const [pendingUsers, setPendingUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [processing, setProcessing] = useState(null);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [processing, setProcessing] = useState<number | null>(null);
   
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -18,34 +19,35 @@ const AdminUserApproval = () => {
       return;
     }
     loadPendingUsers();
-  }, [isAdmin]);
+  }, [isAdmin, navigate]);
 
-  const loadPendingUsers = async () => {
+  const loadPendingUsers = async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await authAPI.getPendingUsers();
-      setPendingUsers(response.data.results || response.data);
-    } catch (err) {
+      const data = response.data;
+      setPendingUsers(Array.isArray(data) ? data : data.results);
+    } catch {
       setError('Failed to load pending users');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async (userId) => {
+  const handleApprove = async (userId: number): Promise<void> => {
     try {
       setProcessing(userId);
       await authAPI.approveUser(userId, true);
       // Remove from list
       setPendingUsers(pendingUsers.filter(u => u.id !== userId));
       setProcessing(null);
-    } catch (err) {
+    } catch {
       setError('Failed to approve user');
       setProcessing(null);
     }
   };
 
-  const handleReject = async (userId) => {
+  const handleReject = async (userId: number): Promise<void> => {
     if (!confirm('Are you sure you want to reject and delete this user?')) {
       return;
     }
@@ -56,7 +58,7 @@ const AdminUserApproval = () => {
       // Remove from list
       setPendingUsers(pendingUsers.filter(u => u.id !== userId));
       setProcessing(null);
-    } catch (err) {
+    } catch {
       setError('Failed to reject user');
       setProcessing(null);
     }
@@ -136,7 +138,7 @@ const AdminUserApproval = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

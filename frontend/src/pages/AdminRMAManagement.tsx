@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { rmaAPI } from '../services/api';
+import type { RMA, RMAState, RMAPriority, RMAFilters } from '../types';
 
 const AdminRMAManagement = () => {
-  const [rmas, setRmas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
+  const [rmas, setRmas] = useState<RMA[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filters, setFilters] = useState<RMAFilters>({
     state: '',
     priority: '',
   });
@@ -22,41 +23,43 @@ const AdminRMAManagement = () => {
       return;
     }
     loadRMAs();
-  }, [isAdmin]);
+  }, [isAdmin, navigate]);
 
-  const loadRMAs = async () => {
+  const loadRMAs = async (): Promise<void> => {
     try {
       setLoading(true);
       setError('');
       const response = await rmaAPI.list({ archived: false });
-      setRmas(response.data.results || response.data);
-    } catch (err) {
+      const data = response.data;
+      setRmas(Array.isArray(data) ? data : data.results);
+    } catch {
       setError('Failed to load RMAs');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (): Promise<void> => {
     try {
       setLoading(true);
       setError('');
       
-      const params = {};
+      const params: Record<string, string> = {};
       if (searchQuery) params.q = searchQuery;
       if (filters.state) params.state = filters.state;
       if (filters.priority) params.priority = filters.priority;
       
       const response = await rmaAPI.search(params);
-      setRmas(response.data.results || response.data);
-    } catch (err) {
+      const sdata = response.data;
+      setRmas(Array.isArray(sdata) ? sdata : sdata.results);
+    } catch {
       setError('Search failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = (): void => {
     setSearchQuery('');
     setFilters({ state: '', priority: '' });
     loadRMAs();
@@ -66,12 +69,12 @@ const AdminRMAManagement = () => {
     return null;
   }
 
-  const states = [
+  const states: RMAState[] = [
     'SUBMITTED', 'APPROVED', 'REJECTED', 'RECEIVED',
-    'DIAGNOSED', 'REPAIRED', 'REPLACED', 'SHIPPED', 'COMPLETED'
+    'DIAGNOSED', 'REPAIRED', 'REPLACED', 'SHIPPED', 'COMPLETED',
   ];
   
-  const priorities = ['LOW', 'NORMAL', 'HIGH'];
+  const priorities: RMAPriority[] = ['LOW', 'NORMAL', 'HIGH'];
 
   return (
     <div style={styles.container}>
@@ -109,7 +112,7 @@ const AdminRMAManagement = () => {
           <div style={styles.filters}>
             <select
               value={filters.state}
-              onChange={(e) => setFilters({ ...filters, state: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, state: e.target.value as RMAState | '' })}
               style={styles.select}
             >
               <option value="">All States</option>
@@ -120,7 +123,7 @@ const AdminRMAManagement = () => {
 
             <select
               value={filters.priority}
-              onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, priority: e.target.value as RMAPriority | '' })}
               style={styles.select}
             >
               <option value="">All Priorities</option>
@@ -193,8 +196,8 @@ const AdminRMAManagement = () => {
   );
 };
 
-const getStateBadgeStyle = (state) => {
-  const colors = {
+const getStateBadgeStyle = (state: RMAState): CSSProperties => {
+  const colors: Record<string, string> = {
     SUBMITTED: '#ffa500',
     APPROVED: '#28a745',
     REJECTED: '#dc3545',
@@ -212,8 +215,8 @@ const getStateBadgeStyle = (state) => {
   };
 };
 
-const getPriorityBadgeStyle = (priority) => {
-  const colors = {
+const getPriorityBadgeStyle = (priority: RMAPriority): CSSProperties => {
+  const colors: Record<string, string> = {
     LOW: '#28a745',
     NORMAL: '#007bff',
     HIGH: '#dc3545',
@@ -225,7 +228,7 @@ const getPriorityBadgeStyle = (priority) => {
   };
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

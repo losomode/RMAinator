@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, _setError] = useState<string>('');
+  const [loading, _setLoading] = useState<boolean>(false);
   
   const { login } = useAuth();
-  const navigate = useNavigate();
   
   // Add hover effects CSS
   useEffect(() => {
@@ -31,28 +30,18 @@ const Login = () => {
       }
     `;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => { document.head.removeChild(style); };
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const result = await login(username, password);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
-    }
-    
-    setLoading(false);
+    // Auth is handled by Authinator - redirect
+    login();
   };
 
-  const handleSSOLogin = (provider) => {
+  const handleSSOLogin = (provider: string): void => {
     // Redirect to SSO provider
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
     window.location.href = `${apiUrl}/api/auth/${provider}/login/`;
   };
 
@@ -171,7 +160,7 @@ const Login = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     display: 'flex',

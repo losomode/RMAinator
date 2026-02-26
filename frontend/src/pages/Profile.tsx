@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { startRegistration } from '@simplewebauthn/browser';
+import type { ProfileFormData, ProfileUpdateData, WebAuthnCredential } from '../types';
 
 const Profile = () => {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormData>({
     email: user?.email || '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -16,28 +17,28 @@ const Profile = () => {
     new_password2: '',
   });
   
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('');
+  const [error, setError] = useState<string>('');
   
   // TOTP state
-  const [totpEnabled, setTotpEnabled] = useState(false);
-  const [showTotpSetup, setShowTotpSetup] = useState(false);
-  const [showTotpDisable, setShowTotpDisable] = useState(false);
-  const [totpQrCode, setTotpQrCode] = useState('');
-  const [totpSecret, setTotpSecret] = useState('');
-  const [totpToken, setTotpToken] = useState('');
-  const [totpDisableToken, setTotpDisableToken] = useState('');
-  const [totpLoading, setTotpLoading] = useState(false);
+  const [totpEnabled, setTotpEnabled] = useState<boolean>(false);
+  const [showTotpSetup, setShowTotpSetup] = useState<boolean>(false);
+  const [showTotpDisable, setShowTotpDisable] = useState<boolean>(false);
+  const [totpQrCode, setTotpQrCode] = useState<string>('');
+  const [_totpSecret, setTotpSecret] = useState<string>('');
+  const [totpToken, setTotpToken] = useState<string>('');
+  const [totpDisableToken, setTotpDisableToken] = useState<string>('');
+  const [totpLoading, setTotpLoading] = useState<boolean>(false);
   
   // WebAuthn state
-  const [webauthnCredentials, setWebauthnCredentials] = useState([]);
-  const [showWebauthnAdd, setShowWebauthnAdd] = useState(false);
-  const [webauthnName, setWebauthnName] = useState('');
-  const [webauthnLoading, setWebauthnLoading] = useState(false);
+  const [webauthnCredentials, setWebauthnCredentials] = useState<WebAuthnCredential[]>([]);
+  const [showWebauthnAdd, setShowWebauthnAdd] = useState<boolean>(false);
+  const [webauthnName, setWebauthnName] = useState<string>('');
+  const [webauthnLoading, setWebauthnLoading] = useState<boolean>(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -48,9 +49,9 @@ const Profile = () => {
 
   // Fetch TOTP and WebAuthn status on mount
   useEffect(() => {
-    const fetchAuthMethods = async () => {
+    const fetchAuthMethods = async (): Promise<void> => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
         const token = localStorage.getItem('accessToken');
         
         // Fetch TOTP status
@@ -84,14 +85,14 @@ const Profile = () => {
     fetchAuthMethods();
   }, []);
   
-  const handleTotpSetup = async () => {
+  const handleTotpSetup = async (): Promise<void> => {
     console.log('TOTP Setup button clicked');
     setTotpLoading(true);
     setError('');
     setMessage('');
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
       const token = localStorage.getItem('accessToken');
       
       console.log('Fetching TOTP setup from:', `${apiUrl}/api/auth/totp/setup/`);
@@ -116,15 +117,16 @@ const Profile = () => {
         console.error('TOTP setup failed:', errorData);
         setError(errorData.error || 'Failed to initialize TOTP setup');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('TOTP setup error:', err);
-      setError(`Failed to initialize TOTP setup: ${err.message}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(`Failed to initialize TOTP setup: ${errMsg}`);
     }
     
     setTotpLoading(false);
   };
   
-  const handleTotpConfirm = async () => {
+  const handleTotpConfirm = async (): Promise<void> => {
     if (!totpToken) {
       setError('Please enter the 6-digit code from your authenticator app');
       return;
@@ -134,7 +136,7 @@ const Profile = () => {
     setError('');
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
       const token = localStorage.getItem('accessToken');
       
       const response = await fetch(`${apiUrl}/api/auth/totp/confirm/`, {
@@ -155,14 +157,14 @@ const Profile = () => {
         const data = await response.json();
         setError(data.error || 'Invalid verification code');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to verify TOTP code');
     }
     
     setTotpLoading(false);
   };
   
-  const handleTotpDisable = async () => {
+  const handleTotpDisable = async (): Promise<void> => {
     if (!totpDisableToken) {
       setError('Please enter the 6-digit code from your authenticator app');
       return;
@@ -173,7 +175,7 @@ const Profile = () => {
     setMessage('');
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
       const token = localStorage.getItem('accessToken');
       
       const response = await fetch(`${apiUrl}/api/auth/totp/disable/`, {
@@ -202,7 +204,7 @@ const Profile = () => {
     setTotpLoading(false);
   };
   
-  const handleWebauthnAdd = async () => {
+  const handleWebauthnAdd = async (): Promise<void> => {
     if (!webauthnName.trim()) {
       setError('Please enter a name for this security key');
       return;
@@ -214,7 +216,7 @@ const Profile = () => {
     setMessage('');
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
       const token = localStorage.getItem('accessToken');
       
       console.log('WebAuthn: Fetching registration options...');
@@ -286,21 +288,22 @@ const Profile = () => {
       setShowWebauthnAdd(false);
       setWebauthnName('');
       setMessage('Security key added successfully');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('WebAuthn error:', err);
-      setError(err.message || 'Failed to add security key');
+      const errMsg = err instanceof Error ? err.message : 'Failed to add security key';
+      setError(errMsg);
     }
     
     setWebauthnLoading(false);
   };
   
-  const handleWebauthnDelete = async (credentialId) => {
+  const handleWebauthnDelete = async (credentialId: number): Promise<void> => {
     if (!confirm('Are you sure you want to remove this security key?')) {
       return;
     }
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
       const token = localStorage.getItem('accessToken');
       
       const response = await fetch(`${apiUrl}/api/auth/webauthn/credentials/${credentialId}/`, {
@@ -316,19 +319,19 @@ const Profile = () => {
       } else {
         setError('Failed to remove security key');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to remove security key');
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
     setError('');
 
     // Build update data
-    const updateData = {
+    const updateData: ProfileUpdateData = {
       email: formData.email,
       first_name: formData.first_name,
       last_name: formData.last_name,
@@ -562,7 +565,7 @@ const Profile = () => {
                       value={totpToken}
                       onChange={(e) => setTotpToken(e.target.value)}
                       placeholder="Enter 6-digit code"
-                      maxLength="6"
+                      maxLength={6}
                       style={styles.input}
                     />
                   </div>
@@ -602,7 +605,7 @@ const Profile = () => {
                       value={totpDisableToken}
                       onChange={(e) => setTotpDisableToken(e.target.value)}
                       placeholder="Enter 6-digit code"
-                      maxLength="6"
+                      maxLength={6}
                       style={styles.input}
                     />
                   </div>
@@ -739,7 +742,7 @@ const Profile = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

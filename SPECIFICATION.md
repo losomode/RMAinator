@@ -1,5 +1,7 @@
 # RMAinator - RMA Device Tracking System
 
+**Note**: References to Docker and container deployment in this document are outdated. The inator family no longer uses Docker. See `INATOR.md` for current architecture.
+
 ## Overview
 
 RMAinator is a multi-user web application for tracking Return Merchandise Authorization (RMA) devices through their repair lifecycle. The system provides separate interfaces for end users (device owners) and administrators (repair technicians/managers), enabling efficient RMA request management, status tracking, and automated alerting for stale RMAs.

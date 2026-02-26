@@ -6,7 +6,7 @@ set:
   - pipefail
 
 env:
-  PATH: "{{.ROOT_DIR}}/.venv/bin:{{.PATH}}"
+  PATH: "{{.ROOT_DIR}}/.venv/bin:$PATH"
 
 vars:
   PROJECT_NAME: RMAinator
@@ -51,13 +51,13 @@ tasks:
       - python manage.py test
 
   backend:test:coverage:
-    desc: Run backend tests with ../.venv/bin/coverage report
+    desc: Run backend tests with coverage report
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - ../.venv/bin/coverage run --source='.' manage.py test
-      - ../.venv/bin/coverage report --omit="*/tests.py,*/migrations/*,*/venv/*,manage.py,*/admin.py,*/__init__.py,*/apps.py"
+      - coverage run --source='.' manage.py test
+      - coverage report --omit="*/tests.py,*/migrations/*,*/venv/*,manage.py,*/admin.py,*/__init__.py,*/apps.py"
       - echo ""
-      - ../.venv/bin/coverage report --omit="*/tests.py,*/migrations/*,*/venv/*,manage.py,*/admin.py,*/__init__.py,*/apps.py" | tail -1 | awk '{if ($NF+0 >= {{.COVERAGE_THRESHOLD}}) print "✓ Coverage threshold met (≥{{.COVERAGE_THRESHOLD}}%)"; else {print "✗ Coverage below threshold (" $NF " < {{.COVERAGE_THRESHOLD}}%)"; exit 1}}'
+      - coverage report --omit="*/tests.py,*/migrations/*,*/venv/*,manage.py,*/admin.py,*/__init__.py,*/apps.py" | tail -1 | awk '{if ($NF+0 >= {{.COVERAGE_THRESHOLD}}) print "✓ Coverage threshold met (≥{{.COVERAGE_THRESHOLD}}%)"; else {print "✗ Coverage below threshold (" $NF " < {{.COVERAGE_THRESHOLD}}%)"; exit 1}}'
 
   backend:lint:
     desc: Lint backend code (if linter installed)

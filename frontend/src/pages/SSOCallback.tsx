@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import type { User } from '../types';
 
 const SSOCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setUserFromSSO } = useAuth();
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState('Processing...');
+  const [error, setError] = useState<string>('');
+  const [status, setStatus] = useState<string>('Processing...');
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const handleCallback = async (): Promise<void> => {
       // Debug: log all URL parameters
       console.log('SSO Callback URL params:', {
         error: searchParams.get('error'),
@@ -46,7 +47,7 @@ const SSOCallback = () => {
           setStatus('Completing authentication...');
           
           // Fetch user data using the access token
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+          const apiUrl = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
           const response = await fetch(`${apiUrl}/api/auth/me/`, {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -54,7 +55,7 @@ const SSOCallback = () => {
           });
 
           if (response.ok) {
-            const userData = await response.json();
+            const userData: User = await response.json();
             // Store tokens and user data
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
@@ -89,7 +90,7 @@ const SSOCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, setUserFromSSO]);
 
   return (
     <div style={styles.container}>
@@ -114,7 +115,7 @@ const SSOCallback = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     display: 'flex',

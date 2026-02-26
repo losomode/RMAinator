@@ -1,19 +1,23 @@
+import { type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { redirectToServices, handleLogout } from '../utils/auth';
+import type { NavItem } from '../types';
 
-const Layout = ({ children }) => {
+interface LayoutProps { children: ReactNode; }
+
+const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/rma/new', label: 'New RMA' },
     { path: '/profile', label: 'Profile' },
     { path: '/admin', label: 'Admin', adminOnly: true },
   ];
 
-  const isActive = (path) => location.pathname.startsWith(path);
+  const isActive = (path: string): boolean => location.pathname.startsWith(path);
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import RMA, RMAGroup, RMAAttachment, RMAStateHistory
-from users.serializers import UserSerializer
+from core.serializers import UserSerializer
 
 
 class RMAAttachmentSerializer(serializers.ModelSerializer):

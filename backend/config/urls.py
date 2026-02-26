@@ -1,5 +1,5 @@
 """
-URL configuration for rmainator project.
+URL configuration for RMAinator project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
@@ -28,9 +28,7 @@ admin.site.index_title = "Welcome to RMAinator Administration"
 urlpatterns = [
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
     path('admin/', admin.site.urls),
-    path('api/auth/', include('users.urls')),
-    path('api/auth/', include('allauth.urls')),  # SSO providers
-    path('api/auth/', include('webauthn_auth.urls')),  # WebAuthn
+    # Authentication handled by external Authinator service
     path('api/rma/', include('rma.urls')),
 ]
 

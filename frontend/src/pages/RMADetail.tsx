@@ -1,24 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { rmaAPI } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+import type { RMA, RMAState } from '../types';
 
 const RMADetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
-  const [rma, setRma] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [rma, setRma] = useState<RMA | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     loadRMADetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const loadRMADetail = async () => {
+  const loadRMADetail = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await rmaAPI.get(id);
+      const response = await rmaAPI.get(id!);
       setRma(response.data);
     } catch (err) {
       setError('Failed to load RMA details');
@@ -28,7 +28,7 @@ const RMADetail = () => {
     }
   };
 
-  const getStateColor = (state) => {
+  const getStateColor = (state: RMAState): string => {
     const colors = {
       SUBMITTED: '#ffa500',
       APPROVED: '#28a745',
@@ -43,7 +43,7 @@ const RMADetail = () => {
     return colors[state] || '#6c757d';
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | null): string => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-US', {
       month: 'short',
@@ -186,7 +186,7 @@ const RMADetail = () => {
                 {rma.state_history.map((history, index) => (
                   <div key={history.id} style={styles.timelineItem}>
                     <div style={styles.timelineDot}></div>
-                    {index < rma.state_history.length - 1 && (
+                    {rma.state_history && index < rma.state_history.length - 1 && (
                       <div style={styles.timelineLine}></div>
                     )}
                     <div style={styles.timelineContent}>
@@ -229,7 +229,7 @@ const RMADetail = () => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

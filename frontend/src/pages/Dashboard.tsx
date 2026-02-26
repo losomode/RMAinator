@@ -1,28 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { rmaAPI } from '../services/api';
+import type { RMA, RMAState } from '../types';
+
+type ViewMode = 'all' | 'individual' | 'byGroup';
 
 const Dashboard = () => {
-  const [rmas, setRmas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
-  const [viewMode, setViewMode] = useState('all'); // 'all', 'individual', 'byGroup'
+  const [rmas, setRmas] = useState<RMA[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [showArchived, setShowArchived] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
   
-  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadRMAs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showArchived]);
 
-  const loadRMAs = async () => {
+  const loadRMAs = async (): Promise<void> => {
     try {
       setLoading(true);
       const response = await rmaAPI.list({ archived: showArchived });
-      setRmas(response.data.results || response.data);
-    } catch (err) {
+      const data = response.data;
+      setRmas(Array.isArray(data) ? data : data.results);
+    } catch {
       setError('Failed to load RMAs');
     } finally {
       setLoading(false);
@@ -97,11 +100,12 @@ const Dashboard = () => {
   );
 };
 
-const RMAView = ({ rmas, viewMode }) => {
-  const navigate = useNavigate();
-  const [expandedGroups, setExpandedGroups] = useState({});
+interface RMAViewProps { rmas: RMA[]; viewMode: ViewMode; }
 
-  const toggleGroup = (groupId) => {
+const RMAView = ({ rmas, viewMode }: RMAViewProps) => {
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupId: string): void => {
     setExpandedGroups(prev => ({
       ...prev,
       [groupId]: !prev[groupId]
@@ -117,8 +121,8 @@ const RMAView = ({ rmas, viewMode }) => {
 
   if (viewMode === 'byGroup') {
     // Group RMAs by group_id
-    const grouped = {};
-    const ungrouped = [];
+    const grouped: Record<number, RMA[]> = {};
+    const ungrouped: RMA[] = [];
     
     displayRmas.forEach(rma => {
       if (rma.group_id) {
@@ -190,10 +194,12 @@ const RMAView = ({ rmas, viewMode }) => {
   );
 };
 
-const RMACard = ({ rma }) => {
+interface RMACardProps { rma: RMA; }
+
+const RMACard = ({ rma }: RMACardProps) => {
   const navigate = useNavigate();
   
-  const getStateColor = (state) => {
+  const getStateColor = (state: RMAState): string => {
     const colors = {
       SUBMITTED: '#ffa500',
       APPROVED: '#28a745',
@@ -262,7 +268,7 @@ const RMACard = ({ rma }) => {
   );
 };
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   toolbar: {
     display: 'flex',
     justifyContent: 'space-between',
