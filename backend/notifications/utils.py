@@ -10,8 +10,16 @@ User = get_user_model()
 
 
 def get_admin_emails():
-    """Get list of admin email addresses."""
-    return list(User.objects.filter(role='ADMIN').values_list('email', flat=True))
+    """
+    Get list of admin email addresses.
+    
+    NOTE: Since authentication is handled by Authinator, we use Django's
+    built-in is_staff/is_superuser flags to identify admins in the database.
+    In a real deployment, admin emails would be configured via environment
+    variables or pulled from Authinator API.
+    """
+    # Use Django's built-in admin flags
+    return list(User.objects.filter(is_staff=True).values_list('email', flat=True))
 
 
 def send_rma_state_change_email(rma, old_state, new_state):

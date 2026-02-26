@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # Local apps
     'core',
+    'users',  # Minimal model for DB relations only - auth handled by Authinator
     'rma',
     'notifications',
     'audit',
@@ -146,8 +147,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Note: User authentication handled by Authinator external service
-# No custom user model needed
+# Custom user model for database relations only
+# NOTE: Authentication is handled by Authinator, not this model
+AUTH_USER_MODEL = 'users.User'
 
 # Authinator configuration
 AUTHINATOR_API_URL = os.getenv('AUTHINATOR_API_URL', 'http://localhost:8000/api/auth/')
