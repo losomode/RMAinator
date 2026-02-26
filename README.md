@@ -296,7 +296,11 @@ task backend:test
 task check  # Runs fmt, lint, test, coverage
 ```
 
-**Current Coverage:** Test coverage metrics available via `task test:coverage`
+**Current Status:** 
+- 3 placeholder tests passing (46% coverage)
+- **TODO:** Tests need to be rewritten to work with Authinator authentication
+- Previous tests depended on the local User model which has been removed
+- New tests should mock Authinator JWT tokens for API testing
 
 ### Available Tasks
 
