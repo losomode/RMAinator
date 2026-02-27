@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getToken } from '../utils/auth';
 import AdminToolsNav from '../components/AdminToolsNav';
+import TimeoutPicker from '../components/TimeoutPicker';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
@@ -19,6 +20,7 @@ const AdminStaleConfig = () => {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<{ [key: number]: number }>({});
+  const [creating, setCreating] = useState<{ state: string; priority: string } | null>(null);
 
   const states = [
     { value: 'SUBMITTED', label: 'Submitted' },
@@ -106,15 +108,12 @@ const AdminStaleConfig = () => {
     }
   };
 
-  const handleCreate = async (state: string, priority: string) => {
-    const timeout = prompt('Enter timeout in hours:');
-    if (!timeout) return;
+  const handleCreateClick = (state: string, priority: string) => {
+    setCreating({ state, priority });
+  };
 
-    const timeoutHours = parseInt(timeout, 10);
-    if (isNaN(timeoutHours) || timeoutHours <= 0) {
-      alert('Invalid timeout value');
-      return;
-    }
+  const handleCreateSave = async (hours: number) => {
+    if (!creating) return;
 
     try {
       const response = await fetch(`${API_URL}/api/rma/admin/stale-config/`, {
@@ -124,9 +123,9 @@ const AdminStaleConfig = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          state,
-          priority,
-          timeout_hours: timeoutHours,
+          state: creating.state,
+          priority: creating.priority,
+          timeout_hours: hours,
         }),
       });
 
@@ -136,6 +135,7 @@ const AdminStaleConfig = () => {
       }
 
       await fetchConfigs();
+      setCreating(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create');
     }
@@ -214,56 +214,33 @@ const AdminStaleConfig = () => {
                   </td>
                   {priorities.map(priority => {
                     const config = getConfigForStatePriority(state.value, priority.value);
+                    const formatHours = (hours: number) => {
+                      if (hours < 24) return `${hours}h`;
+                      if (hours % 168 === 0) return `${hours / 168}w`;
+                      if (hours % 24 === 0) return `${hours / 24}d`;
+                      return `${hours}h`;
+                    };
                     return (
                       <td key={priority.value} className="px-6 py-4 whitespace-nowrap">
                         {config ? (
                           <div className="flex items-center space-x-2">
-                            {editing === config.id ? (
-                              <>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={editValues[config.id] ?? config.timeout_hours}
-                                  onChange={(e) => setEditValues({
-                                    ...editValues,
-                                    [config.id]: parseInt(e.target.value, 10)
-                                  })}
-                                  className="w-20 px-2 py-1 border rounded"
-                                />
-                                <button
-                                  onClick={() => handleSave(config.id)}
-                                  className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={handleCancel}
-                                  className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-gray-900">{config.timeout_hours}</span>
-                                <button
-                                  onClick={() => handleEdit(config.id, config.timeout_hours)}
-                                  className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded hover:bg-yellow-200"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(config.id)}
-                                  className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200"
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
+                            <span className="text-gray-900 font-medium">{formatHours(config.timeout_hours)}</span>
+                            <button
+                              onClick={() => handleEdit(config.id, config.timeout_hours)}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(config.id)}
+                              className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200"
+                            >
+                              Delete
+                            </button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => handleCreate(state.value, priority.value)}
+                            onClick={() => handleCreateClick(state.value, priority.value)}
                             className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded hover:bg-green-200"
                           >
                             Add Config
@@ -288,6 +265,31 @@ const AdminStaleConfig = () => {
           <li>Higher priority RMAs typically have shorter timeouts</li>
         </ul>
       </div>
+
+      {/* Modal overlay for editing */}
+      {editing !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <TimeoutPicker
+            initialHours={editValues[editing] ?? configs.find(c => c.id === editing)?.timeout_hours ?? 24}
+            onSave={(hours) => {
+              setEditValues({ ...editValues, [editing]: hours });
+              handleSave(editing);
+            }}
+            onCancel={handleCancel}
+          />
+        </div>
+      )}
+
+      {/* Modal overlay for creating */}
+      {creating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <TimeoutPicker
+            initialHours={24}
+            onSave={handleCreateSave}
+            onCancel={() => setCreating(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };
