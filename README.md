@@ -1,239 +1,134 @@
 # RMAinator
 
-**A complete RMA device tracking system for managing repair workflows from submission to completion.**
+> *"Behold, the RMA-inator! It tracks every return, repair, and replacement with the efficiency of... well, a really efficient tracking system!"*
 
-[![Django](https://img.shields.io/badge/django-6.0-blue)]() [![React](https://img.shields.io/badge/react-18-blue)]()
+**RMAinator** is a complete RMA (Return Merchandise Authorization) tracking system that manages device repair workflows from submission to completion. Part of the [Inator Platform](https://github.com/losomode/inator), it gives admins full control over repair operations while keeping customers informed every step of the way.
 
----
-
-## 📖 Table of Contents
-
-- [For End Users](#-for-end-users) - How to submit and track RMAs
-- [For Administrators](#-for-administrators) - How to manage RMAs and users
-- [For Developers](#-for-developers) - Setup and deployment
-- [Features](#-features) - Complete feature list
-- [API Documentation](#-api-documentation)
+[![Django](https://img.shields.io/badge/django-6.0-green)](https://www.djangoproject.com/) [![React](https://img.shields.io/badge/react-18-blue)](https://reactjs.org/) [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](./backend) [![Tests](https://img.shields.io/badge/tests-65%20passing-success)](./backend)
 
 ---
 
-## 👥 For End Users
+## 🎯 What Does It Do?
 
-### Getting Started
-
-1. **Register**: Click "Sign Up" to register via Authinator (supports email/password, SSO, 2FA, WebAuthn)
-2. **Login**: Use your Authinator credentials to access RMAinator
-3. **Start Using**: Create and track RMAs immediately after login
-
-> **Note:** All authentication (registration, login, password reset, SSO, 2FA, WebAuthn) is handled by the external **Authinator** service. RMAinator validates your JWT token to grant access.
-
-### Submitting an RMA
-
-1. Click **"+ New RMA"** from your dashboard
-2. Fill in device information:
-   - Serial number
-   - First ship date (optional)
-   - Issue description
-   - Priority level (Low/Normal/High)
-3. **Attach files** (optional): photos, PDFs, or documents showing the issue
-4. For multiple devices with the same issue: Click **"+ Add Another Device"**
-5. Click **Submit**
-
-### Tracking Your RMAs
-
-**Dashboard Views:**
-- **All RMAs**: See all your submissions in a grid view
-- **By RMA Group**: Multi-device submissions organized by group with expand/collapse controls
-
-![User Dashboard - By Group View](docs/images/User2.png)
-*Dashboard showing RMA groups with collapse controls*
-
-**RMA Cards** show:
-- Serial number
-- Current state
-- Priority
-- Created date
-- Completion/closure date (if applicable)
-
-![User Dashboard - All RMAs View](docs/images/User3.png)
-*Dashboard showing all RMAs in grid view*
-
-**Click any RMA** to see:
-- Complete device information
-- Full status history timeline
-- State transition dates
-- Admin notes and updates
-- Attached files
-
-![RMA Detail View](docs/images/User1.png)
-*Detailed RMA view with device info and status history*
-
-### Email Notifications
-
-You'll receive automatic emails when:
-- Your RMA is approved or rejected
-- Your RMA state changes (received, diagnosed, repaired, shipped, completed)
-- An RMA becomes stale (exceeds configured timeout)
-
-### RMA Lifecycle
+RMAinator handles the complete lifecycle of device returns:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> SUBMITTED: User creates RMA
-    SUBMITTED --> APPROVED: Admin approves
-    SUBMITTED --> REJECTED: Admin rejects
-    APPROVED --> RECEIVED: Device arrives
-    RECEIVED --> DIAGNOSED: Issue identified
+    [*] --> SUBMITTED: Customer submits RMA
+    SUBMITTED --> APPROVED: Admin reviews & approves
+    SUBMITTED --> REJECTED: Out of warranty/invalid
+    APPROVED --> RECEIVED: Device arrives at facility
+    RECEIVED --> DIAGNOSED: Technician identifies issue
     DIAGNOSED --> REPAIRED: Device fixed
-    DIAGNOSED --> REPLACED: Unit swapped
-    REPAIRED --> SHIPPED: Sent to customer
-    REPLACED --> SHIPPED: Sent to customer
-    SHIPPED --> COMPLETED: RMA closed
+    DIAGNOSED --> REPLACED: Unit swapped out
+    REPAIRED --> SHIPPED: Return to customer
+    REPLACED --> SHIPPED: Send replacement
+    SHIPPED --> COMPLETED: Customer confirms receipt
     REJECTED --> [*]
     COMPLETED --> [*]
     
     note right of SUBMITTED
-        📝 User submits device
-        with issue description
+        📝 With photos, serial numbers,
+        fault notes, and attachments
     end note
     
-    note right of REJECTED
-        ❌ Terminal state
-        (Out of warranty, etc.)
-    end note
-    
-    note right of COMPLETED
-        ✨ Terminal state
-        (Device returned)
+    note right of DIAGNOSED
+        🔧 Root cause analysis,
+        parts tracking, cost calculation
     end note
 ```
 
+**For Customers:**
+- Submit RMAs with photos and documentation
+- Track repair status in real-time
+- Receive email notifications at each stage
+- View complete repair history
+
+**For Admins:**
+- Approve/reject RMA requests
+- Track device through repair workflow
+- Record technical details (root cause, parts, costs)
+- Monitor stale RMAs with configurable timeouts
+- Full audit trail of all changes
+
 ---
 
-## 👨‍💼 For Administrators
+## 🏗️ Architecture
 
-### User Management
-
-**User management is handled by Authinator:**
-- User registration, approval, roles, and permissions are managed in Authinator
-- RMAinator trusts JWT tokens issued by Authinator
-- Admin users are identified by their role in the JWT token
-
-### RMA Management Workflow
+RMAinator is a standalone microservice that delegates authentication to **Authinator**:
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant Authinator
-    participant RMAinator
-    participant Admin
-    participant Email
+graph TB
+    subgraph "Client Browser"
+        UI[🖥 React Frontend<br/>localhost:5173]
+    end
     
-    User->>Authinator: Register/Login
-    Authinator->>User: JWT Token
+    subgraph "RMAinator Service"
+        API[⚙️ Django Backend<br/>localhost:8000]
+        DB[(💾 Database<br/>SQLite/Postgres)]
+        FILES[📎 File Storage<br/>RMA Attachments]
+    end
     
-    User->>RMAinator: Submit RMA (with JWT + files)
-    RMAinator->>Authinator: Validate JWT
-    Authinator->>RMAinator: User Info
-    RMAinator->>Email: Notify admins of new RMA
-    RMAinator->>User: RMA created
+    subgraph "External Services"
+        AUTH[🔐 Authinator<br/>JWT Auth & Users]
+        SMTP[📧 SMTP Server<br/>Email Notifications]
+    end
     
-    Admin->>Authinator: Login as Admin
-    Authinator->>Admin: Admin JWT Token
-    Admin->>RMAinator: Review & approve RMA (with Admin JWT)
-    RMAinator->>Email: Notify user of approval
-    Email->>User: RMA approved
+    UI -->|HTTP + JWT| API
+    UI -.->|Login/Register| AUTH
+    API -->|Validate Token| AUTH
+    API --> DB
+    API --> FILES
+    API -->|Send Emails| SMTP
     
-    Note over Admin,RMAinator: Device received at facility
-    Admin->>RMAinator: Update state: RECEIVED
-    RMAinator->>Email: Notify user
-    
-    Note over Admin,RMAinator: Technician diagnoses issue
-    Admin->>RMAinator: Update state: DIAGNOSED<br/>Add root cause
-    RMAinator->>Email: Notify user
-    
-    Note over Admin,RMAinator: Device repaired
-    Admin->>RMAinator: Update state: REPAIRED<br/>Add parts/cost
-    RMAinator->>Email: Notify user
-    
-    Note over Admin,RMAinator: Device shipped back
-    Admin->>RMAinator: Update state: SHIPPED
-    RMAinator->>Email: Notify user
-    
-    Note over Admin,RMAinator: RMA process complete
-    Admin->>RMAinator: Update state: COMPLETED
-    RMAinator->>Email: Notify user
-    Email->>User: Device returned
+    style UI fill:#61dafb,stroke:#333,stroke-width:2px
+    style API fill:#092e20,stroke:#333,stroke-width:2px,color:#fff
+    style AUTH fill:#4a90d9,stroke:#333,stroke-width:2px,color:#fff
+    style DB fill:#336791,stroke:#333,stroke-width:2px,color:#fff
+    style SMTP fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
 ```
 
-**Key Admin Actions:**
-
-1. **Review New RMAs**: View SUBMITTED RMAs, approve or reject
-2. **Update Status**: Transition through states as device progresses
-3. **Add Technical Info**: Root cause, parts, cost, diagnostics
-4. **Monitor**: Track stale RMAs and metrics
-
-### Admin Dashboard
-
-Access the Django admin interface at `/admin/` to manage all aspects of the system.
-
-![Django Admin - RMA List](docs/images/Admin1.png)
-*Admin view showing all RMAs with advanced filtering and search*
-
-**Django Admin Features:**
-- Complete RMA list with inline filtering
-- Filter by state, priority, owner, date range
-- Search by RMA number, serial number
-- Bulk actions for state updates
-- Full audit trail access
-
-![Django Admin - RMA Detail](docs/images/Admin2.png)
-*Admin RMA detail view with all technical fields*
-
-![Django Admin - State History](docs/images/Admin3.png)
-*Complete state transition history for tracking workflow*
-
-
-### Stale RMA Management
-
-**Configure Timeouts:**
-1. Access Django Admin at `/admin/`
-2. Go to **Notifications** → **State Timeouts**
-3. Set timeout hours per state and priority
-   - Example: HIGH priority SUBMITTED = 24 hours
-   - Example: NORMAL priority DIAGNOSED = 72 hours
-
-**Check for Stale RMAs:**
-```bash
-# Run manually
-task backend:check-stale
-
-# Or directly:
-python manage.py check_stale_rmas
-```
-
-**Setup Automated Checks** (see deployment section)
+**Key Design Decisions:**
+- **JWT Authentication**: No local user database, all auth via Authinator
+- **Django + DRF**: Robust backend with batteries included
+- **React + Vite**: Modern, fast frontend development
+- **Email Notifications**: Automatic updates at each workflow stage
+- **File Attachments**: S3-compatible storage for photos and documents
+- **Audit Logging**: Complete field-level change tracking
 
 ---
 
-## 🛠️ For Developers
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.10+
 - Node.js 18+
-- [Task](https://taskfile.dev/) (optional but recommended)
-- Access to Authinator authentication service
+- [Task](https://taskfile.dev/) - `brew install go-task`
+- Access to Authinator (for JWT validation)
 
-### Quick Start with Taskfile
+### Installation
 
 ```bash
-# Install all dependencies
+# Clone the repo
+git clone git@github.com:losomode/RMAinator.git
+cd RMAinator
+
+# Install everything (backend + frontend)
 task install
 
-# Start backend (terminal 1)
+# Configure Authinator connection
+cp .env.example .env
+# Edit .env with your AUTHINATOR_API_URL and AUTHINATOR_API_KEY
+```
+
+### Development
+
+```bash
+# Terminal 1: Start backend
 task backend:dev
 
-# Start frontend (terminal 2)
+# Terminal 2: Start frontend  
 task frontend:dev
 ```
 
@@ -242,196 +137,245 @@ task frontend:dev
 - Backend API: http://localhost:8000
 - Django Admin: http://localhost:8000/admin
 
-**Authentication Setup:**
-
-Authentication is handled by the external **Authinator** service. Configure the following environment variables:
+### Production Deployment
 
 ```bash
-AUTHINATOR_API_URL=https://your-authinator-instance.com/api
-AUTHINATOR_API_KEY=your-authinator-api-key
+# Build production assets
+task build
+
+# Run database migrations
+task backend:migrate
+
+# Collect static files
+task backend:collectstatic
+
+# Run with gunicorn (example)
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
 ```
 
-### Manual Setup
+See [Deployment](#-deployment) section for full production setup.
 
-**Backend:**
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
+---
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Create Admin User
+## 📋 Available Tasks
 
 ```bash
-# Admin users are managed in Authinator
-# Use the Authinator admin interface or API to create users with admin roles
-# RMAinator recognizes these roles from the JWT token:
-# - SYSTEM_ADMIN: Full system access
-# - CUSTOMER_ADMIN: Customer-level admin access
-# - CUSTOMER_USER: Standard user access
-# - CUSTOMER_READONLY: Read-only access
+task --list                   # Show all available commands
+
+# Development
+task dev                      # Show dev server instructions
+task backend:dev              # Run Django dev server
+task frontend:dev             # Run Vite dev server
+
+# Testing & Quality
+task test                     # Run all tests
+task test:coverage            # Run tests with coverage (must be ≥85%)
+task check                    # Pre-commit checks (lint, fmt, test)
+
+# Database
+task backend:migrate          # Run migrations
+task backend:makemigrations   # Create migrations
+task backend:shell            # Django shell
+task db:reset                 # Reset database (⚠️ destructive)
+
+# Utilities
+task backend:check-stale      # Check for stale RMAs
+task build                    # Build for production
+task clean                    # Clean build artifacts
 ```
 
-### Import Sample Data
+---
 
-```bash
-# Import from Excel
-cd backend
-python manage.py import_excel path/to/file.xlsx --admin-username admin
-```
+## 🔄 The RMA Workflow
 
-### Testing
-
-```bash
-# Run all tests with coverage
-task test:coverage
-
-# Backend tests only
-task backend:test
-
-# Check code quality
-task check  # Runs fmt, lint, test, coverage
-```
-
-**Test Coverage:** 
-- ✅ 65 tests passing (85% coverage, 87% unfiltered)
-- ✅ Meets Go standards specification (≥75% per package, 85% overall)
-- ✅ Comprehensive test suites for:
-  - RMA models, views, and serializers (95-99% coverage)
-  - Admin dashboard metrics (98% coverage)
-  - Email notification system (78% coverage)
-  - Authinator JWT authentication (100% coverage)
-  - Audit logging (90% coverage)
-
-**Test Files:**
-- `backend/rma/test_models.py` - RMA, RMAGroup, RMAStateHistory, RMAAttachment models
-- `backend/rma/test_views.py` - API endpoints, permissions, state transitions
-- `backend/rma/test_dashboard.py` - Admin dashboard metrics and analytics
-- `backend/notifications/tests.py` - Email utilities and stale RMA detection
-- `backend/core/test_authentication.py` - JWT validation and user roles
-
-### Available Tasks
-
-```bash
-task --list  # Show all available commands
-
-# Key commands:
-task install              # Install all dependencies
-task dev                  # Show dev server instructions
-task test                 # Run all tests
-task test:coverage        # Run with coverage report
-task check                # Pre-commit checks
-task build                # Build for production
-task clean                # Clean artifacts
-task backend:migrate      # Run migrations
-task backend:shell        # Django shell
-task db:reset             # Reset database
-```
-
-### System Architecture
+### Customer Journey
 
 ```mermaid
-graph TB
-    subgraph Client["👤 Client Browser"]
-        UI[React Frontend<br/>Port 5173]
-    end
+sequenceDiagram
+    participant C as Customer
+    participant UI as RMAinator UI
+    participant AUTH as Authinator
+    participant API as RMAinator API
+    participant EMAIL as Email
     
-    subgraph Backend["🖥️ Backend Server"]
-        API[Django REST API<br/>Port 8000]
-        Auth[Authinator JWT Auth]
-        subgraph Apps["Django Apps"]
-            RMA[rma<br/>Device Tracking]
-            Notif[notifications<br/>Email & Alerts]
-            Audit[audit<br/>Change History]
-        end
-    end
+    C->>AUTH: Login/Register
+    AUTH->>C: JWT Token
     
-    subgraph AuthService["🔐 Authinator"]
-        AuthAPI[Authentication API]
-    end
+    C->>UI: Create RMA + Upload Photos
+    UI->>API: POST /api/rma/ (JWT)
+    API->>AUTH: Validate Token
+    AUTH->>API: User Info
+    API->>EMAIL: Notify Admins
+    API->>C: RMA Created (#12345)
     
-    subgraph Storage["💾 Storage"]
-        DB[(SQLite/PostgreSQL<br/>Database)]
-        Files[File Storage<br/>Attachments]
-    end
+    Note over C,API: Admin reviews and approves...
     
-    subgraph External["📧 External Services"]
-        SMTP[SMTP Server<br/>Email Delivery]
-    end
+    API->>EMAIL: Notify Customer: APPROVED
+    EMAIL->>C: "RMA #12345 Approved"
     
-    UI -->|HTTP + JWT| API
-    UI -->|Login/Register| AuthAPI
-    API --> Auth
-    Auth -->|Validate Token| AuthAPI
-    API --> RMA
-    API --> Notif
-    API --> Audit
+    Note over API: Device arrives, repaired, shipped...
     
-    RMA --> DB
-    Notif --> DB
-    Audit --> DB
+    API->>EMAIL: Notify at each state change
+    EMAIL->>C: "RMA #12345 is SHIPPED"
     
-    RMA --> Files
-    Notif -->|Send Emails| SMTP
-    
-    style UI fill:#61dafb,stroke:#333,stroke-width:2px
-    style API fill:#092e20,stroke:#333,stroke-width:2px,color:#fff
-    style DB fill:#336791,stroke:#333,stroke-width:2px,color:#fff
-    style SMTP fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
+    C->>UI: Confirm receipt
+    UI->>API: PATCH /api/rma/12345/state/
+    API->>C: RMA COMPLETED
 ```
 
-### Project Structure
+### Admin Workflow
+
+```mermaid
+graph LR
+    A[📥 New RMA<br/>Submitted] --> B{Review}
+    B -->|Approve| C[✅ Approved]
+    B -->|Reject| D[❌ Rejected]
+    
+    C --> E[📦 Device<br/>Received]
+    E --> F[🔍 Diagnosed]
+    F --> G{Repair or<br/>Replace?}
+    G -->|Repair| H[🔧 Repaired]
+    G -->|Replace| I[🔄 Replaced]
+    H --> J[📫 Shipped]
+    I --> J
+    J --> K[✨ Completed]
+    
+    D --> END[End]
+    K --> END
+    
+    style A fill:#3498db,color:#fff
+    style C fill:#2ecc71,color:#fff
+    style D fill:#e74c3c,color:#fff
+    style K fill:#9b59b6,color:#fff
+```
+
+**Admin Actions at Each Stage:**
+1. **SUBMITTED** → Review RMA details, approve or reject with reason
+2. **APPROVED** → Mark as RECEIVED when device arrives
+3. **RECEIVED** → Diagnose issue, add technical notes
+4. **DIAGNOSED** → Record root cause, required parts, estimated cost
+5. **REPAIRED/REPLACED** → Document work performed, actual costs
+6. **SHIPPED** → Add tracking number, return date
+7. **COMPLETED** → Archive RMA, calculate time-in-state metrics
+
+---
+
+## 🎯 Features
+
+### 👤 Customer Features
+
+- 🔐 **Secure Authentication** - Via Authinator (SSO, 2FA, WebAuthn supported)
+- 📦 **Multi-Device Submissions** - Group multiple devices in one RMA
+- 📎 **File Attachments** - Upload photos, PDFs, diagnostic reports
+- 📊 **Real-Time Tracking** - See current status and complete history
+- 🔔 **Email Notifications** - Automatic updates at each workflow stage
+- 📜 **Audit History** - View every change made to your RMA
+- 🔍 **Search & Filter** - Find RMAs by serial number, date, status
+
+### 👨‍💼 Admin Features
+
+- 🏛️ **Complete RMA Management** - Search, filter, bulk actions
+- 🔄 **State Management** - Transition RMAs through defined workflow
+- 📈 **Admin Dashboard** - Metrics, trends, recent activity at a glance
+- ⚠️ **Stale RMA Detection** - Configurable timeout alerts by state/priority
+- 🔍 **Advanced Search** - Filter by RMA#, serial, owner, state, priority, dates
+- 📝 **Technical Fields** - Root cause, parts, costs, diagnostic details
+- 📧 **Admin Notifications** - Alerts for new RMAs and stale items
+- 🕐 **Complete Audit Trail** - Field-level change history
+- 🔐 **Role-Based Access** - Permissions via Authinator JWT tokens
+- 📊 **Reporting** - Export capabilities, analytics
+
+---
+
+## 🗂️ Project Structure
 
 ```
 RMAinator/
-├── backend/
-│   ├── core/
-│   │   ├── authentication.py         # Authinator JWT authentication
+├── backend/                          # Django application
+│   ├── config/                       # Settings, URLs, WSGI
+│   │   ├── settings.py               # Environment-based config
+│   │   └── urls.py                   # API routing
+│   ├── core/                         # Shared functionality
+│   │   ├── authentication.py         # Authinator JWT validation
 │   │   ├── authinator_client.py      # Authinator API client
-│   │   ├── test_authentication.py    # Authentication tests (100% coverage)
-│   │   └── test_utils.py             # Test helper functions
-│   ├── rma/
-│   │   ├── models.py                 # RMA, RMAGroup, state history models
-│   │   ├── views.py                  # API endpoints
+│   │   ├── permissions.py            # Role-based permissions
+│   │   ├── test_authentication.py    # Auth tests (100% coverage)
+│   │   └── test_utils.py             # Test helpers
+│   ├── rma/                          # RMA domain logic
+│   │   ├── models.py                 # RMA, RMAGroup, state history
+│   │   ├── views.py                  # REST API endpoints
 │   │   ├── serializers.py            # DRF serializers
-│   │   ├── dashboard.py              # Admin dashboard metrics
-│   │   ├── test_models.py            # Model tests (95% coverage)
-│   │   ├── test_views.py             # View/API tests (99% coverage)
-│   │   └── test_dashboard.py         # Dashboard tests (98% coverage)
-│   ├── notifications/
+│   │   ├── dashboard.py              # Admin metrics
+│   │   ├── signals.py                # Email triggers
+│   │   ├── test_models.py            # Model tests (95%)
+│   │   ├── test_views.py             # API tests (99%)
+│   │   └── test_dashboard.py         # Dashboard tests (98%)
+│   ├── notifications/                # Email & alerts
 │   │   ├── models.py                 # StateTimeout, StaleRMARecord
-│   │   ├── utils.py                  # Email notification utilities
-│   │   └── tests.py                  # Notification tests (78% coverage)
-│   ├── audit/                        # Audit logging
-│   ├── users/
-│   │   └── models.py                 # Minimal User model (for DB relations)
-│   ├── config/                       # Django settings
-│   └── manage.py
-├── frontend/
-│   └── src/
-│       ├── pages/                    # React page components
-│       ├── services/                 # API client
-│       └── contexts/                 # Auth context
+│   │   ├── utils.py                  # Email utilities
+│   │   ├── tests.py                  # Notification tests (78%)
+│   │   └── management/commands/      # CLI commands
+│   ├── audit/                        # Change tracking
+│   │   └── models.py                 # Audit log
+│   ├── users/                        # Minimal User model
+│   │   └── models.py                 # For FK relations only
+│   ├── requirements.txt              # Python dependencies
+│   └── manage.py                     # Django CLI
+├── frontend/                         # React application
+│   ├── src/
+│   │   ├── pages/                    # Route components
+│   │   ├── components/               # Reusable UI components
+│   │   ├── services/                 # API client
+│   │   ├── contexts/                 # React contexts (auth, etc.)
+│   │   └── types.ts                  # TypeScript definitions
+│   ├── package.json                  # Node dependencies
+│   └── vite.config.ts                # Vite configuration
+├── docs/                             # Documentation
+│   └── images/                       # Screenshots
 ├── Taskfile.yml                      # Task automation
-├── README.md
+├── .env.example                      # Environment template
 ├── CHANGELOG.md                      # Version history
-└── SPECIFICATION.md                  # Complete requirements
+├── SPECIFICATION.md                  # Requirements
+└── README.md                         # This file
 ```
 
-### Production Deployment
+---
 
-**Environment Variables:**
+## 🧪 Testing
+
+RMAinator has comprehensive test coverage meeting [Deft](https://github.com/losomode/inator/blob/main/deft/main.md) standards:
+
+```bash
+# Run all tests
+task test
+
+# Run with coverage report
+task test:coverage
+
+# Run specific test file
+python backend/manage.py test rma.test_models
+```
+
+**Coverage Stats (85% overall, 87% unfiltered):**
+- ✅ 65 tests passing
+- ✅ RMA models, views, serializers: 95-99%
+- ✅ Admin dashboard: 98%
+- ✅ Notifications: 78%
+- ✅ Authinator auth: 100%
+- ✅ Audit logging: 90%
+
+**Test Files:**
+- `backend/rma/test_models.py` - RMA, RMAGroup, state history, attachments
+- `backend/rma/test_views.py` - API endpoints, permissions, state transitions
+- `backend/rma/test_dashboard.py` - Admin metrics and analytics
+- `backend/notifications/tests.py` - Email utilities, stale RMA detection
+- `backend/core/test_authentication.py` - JWT validation, user roles
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
 
 ```bash
 # Backend (.env)
@@ -439,8 +383,8 @@ DEBUG=False
 SECRET_KEY=your-secret-key-here-change-this
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 
-# Authinator (required for authentication)
-AUTHINATOR_API_URL=https://your-authinator-instance.com/api
+# Authinator (required)
+AUTHINATOR_API_URL=https://your-authinator.com/api
 AUTHINATOR_API_KEY=your-authinator-api-key
 
 # Email (SMTP)
@@ -453,172 +397,287 @@ DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 
 # Database (optional, SQLite default)
 DATABASE_URL=postgresql://user:pass@localhost/rmainator
+
+# File Storage (optional, local default)
+AWS_STORAGE_BUCKET_NAME=your-bucket
+AWS_S3_REGION_NAME=us-east-1
 ```
 
-**Scheduled Tasks (cron):**
+### Stale RMA Detection
 
+Configure timeout thresholds by state and priority:
+
+1. Access Django Admin: http://localhost:8000/admin
+2. Go to **Notifications** → **State Timeouts**
+3. Create timeout rules:
+   - HIGH priority SUBMITTED = 24 hours
+   - NORMAL priority DIAGNOSED = 72 hours
+   - etc.
+
+Run the checker:
 ```bash
-# Add to crontab for daily stale RMA checks at 9 AM
+# Manually
+task backend:check-stale
+
+# Via cron (production)
 0 9 * * * cd /path/to/backend && python manage.py check_stale_rmas
 ```
 
-**Nginx Configuration:**
+---
+
+## 🌐 Deployment
+
+### Production Checklist
+
+- [ ] Set `DEBUG=False` in environment
+- [ ] Configure strong `SECRET_KEY`
+- [ ] Set `ALLOWED_HOSTS` correctly
+- [ ] Configure Authinator connection
+- [ ] Set up SMTP email (not console backend)
+- [ ] Use PostgreSQL (not SQLite)
+- [ ] Configure S3/compatible storage for files
+- [ ] Set up HTTPS/TLS
+- [ ] Run migrations: `task backend:migrate`
+- [ ] Collect static files: `task backend:collectstatic`
+- [ ] Configure cron for stale RMA checks
+
+### Nginx Configuration
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
+    server_name rmainator.yourdomain.com;
+    
+    # Redirect to HTTPS
+    return 301 https://$server_name$request_uri;
+}
 
-    # Frontend
+server {
+    listen 443 ssl http2;
+    server_name rmainator.yourdomain.com;
+    
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    
+    # Frontend (SPA)
     location / {
-        root /path/to/frontend/dist;
+        root /var/www/rmainator/frontend/dist;
         try_files $uri /index.html;
     }
-
+    
     # API
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
-
+    
     # Static files
     location /static/ {
-        alias /path/to/backend/staticfiles/;
+        alias /var/www/rmainator/backend/staticfiles/;
     }
-
-    # Media files
+    
+    # Media files (RMA attachments)
     location /media/ {
-        alias /path/to/backend/media/;
+        alias /var/www/rmainator/backend/media/;
     }
+}
+```
+
+### Systemd Service (Backend)
+
+```ini
+[Unit]
+Description=RMAinator Backend
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+WorkingDirectory=/var/www/rmainator/backend
+Environment="PATH=/var/www/rmainator/.venv/bin"
+ExecStart=/var/www/rmainator/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --access-logfile /var/log/rmainator/access.log \
+    --error-logfile /var/log/rmainator/error.log
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+## 📊 API Reference
+
+### Authentication
+
+All API requests require a valid JWT token from Authinator in the `Authorization` header:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+### RMA Endpoints
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET` | `/api/rma/` | List user's RMAs | User |
+| `POST` | `/api/rma/` | Create RMA | User |
+| `POST` | `/api/rma/group/` | Create RMA group | User |
+| `GET` | `/api/rma/{id}/` | RMA details | User |
+| `PATCH` | `/api/rma/{id}/` | Update RMA | User/Admin |
+| `POST` | `/api/rma/{id}/state/` | Update state | Admin |
+| `GET` | `/api/rma/{id}/audit/` | Audit history | User/Admin |
+| `POST` | `/api/rma/{id}/attachments/` | Upload file | User/Admin |
+| `GET` | `/api/rma/search/` | Advanced search | Admin |
+| `GET` | `/api/rma/admin/dashboard/` | Admin metrics | Admin |
+
+### Example: Create RMA
+
+```bash
+curl -X POST http://localhost:8000/api/rma/ \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serial_number": "SN123456",
+    "fault_notes": "Device won'\''t power on",
+    "priority": "HIGH",
+    "first_ship_date": "2024-01-15"
+  }'
+```
+
+Response:
+```json
+{
+  "id": 123,
+  "rma_number": 12345,
+  "serial_number": "SN123456",
+  "state": "SUBMITTED",
+  "priority": "HIGH",
+  "created_at": "2024-02-27T12:00:00Z",
+  "owner": {
+    "username": "customer@example.com",
+    "email": "customer@example.com"
+  }
 }
 ```
 
 ---
 
-## 🎯 Features
-
-### User Features
-- 🔐 **Secure Authentication** - Handled by Authinator (supports SSO, 2FA, WebAuthn)
-- 📦 **Multi-Device RMA Submission** - Submit one or multiple devices in a single request
-- 📎 **File Attachments** - Attach photos, PDFs, and documents to RMAs
-- 📊 **RMA Dashboard** - View active and archived RMAs with status updates
-- 🔔 **Email Notifications** - Receive automatic notifications on RMA state changes
-- 📜 **Audit History** - View complete history of RMA changes and status updates
-- 🔍 **RMA Groups** - Track multiple devices submitted together
-- 🔑 **JWT-Based Access** - Seamless authentication across microservices
-
-### Admin Features
-- 🏛️ **RMA Management** - Search, filter, and manage all RMAs
-- 🔄 **State Management** - Update RMA states through defined workflow
-- 📈 **Admin Dashboard** - View metrics, trends, and recent activity
-- ⚠️ **Stale RMA Detection** - Configurable timeout alerts for delayed RMAs
-- 🔍 **Advanced Search** - Search by RMA#, serial number, owner, state, priority, date range
-- 📝 **Technical Fields** - Update diagnostic info (TX2 MAC, scripts, services, etc.)
-- 📧 **Admin Notifications** - Receive alerts for new RMAs and stale RMAs
-- 🕐 **Audit Trail** - Complete field-level change history for all RMAs
-- 🔐 **Role-Based Access** - Permissions enforced via Authinator JWT tokens
-
-## 🏗️ Technology Stack
-
-- **Backend:** Django 6.0, Django REST Framework
-- **Frontend:** React 18, Vite, React Router
-- **Database:** SQLite (dev), PostgreSQL-ready (prod)
-- **Authentication:** Authinator JWT (external service)
-- **Email:** Django email (console dev, SMTP prod)
-- **Testing:** Django TestCase
-
-## 📊 API Documentation
-
-### Authentication
-Authentication is handled by the external **Authinator** service. All user registration, login, profile management, and advanced authentication features (SSO, 2FA, WebAuthn) are managed through Authinator.
-
-RMAinator validates JWT tokens issued by Authinator for API access.
-
-### RMA
-- `GET /api/rma/` - List RMAs
-- `POST /api/rma/` - Create RMA
-- `POST /api/rma/group/` - Create RMA group
-- `GET /api/rma/{id}/` - RMA details
-- `PATCH /api/rma/{id}/` - Update RMA
-- `POST /api/rma/{id}/state/` - Update state (admin)
-- `GET /api/rma/{id}/audit/` - Audit history
-- `POST /api/rma/{id}/attachments/` - Upload file
-
-### Admin
-- `GET /api/rma/search/` - Search RMAs
-- `GET /api/rma/admin/dashboard/` - Metrics
-
 ## 🐛 Troubleshooting
 
-**"Authentication failed" or "Invalid token"**
-- Ensure Authinator service is running and accessible
-- Check `AUTHINATOR_API_URL` and `AUTHINATOR_API_KEY` environment variables
-- Verify your JWT token is valid (not expired)
-- Try logging out and back in to get a fresh token
+### Authentication Issues
+
+**"Invalid token" or "Authentication failed"**
+- Ensure Authinator is running and accessible
+- Verify `AUTHINATOR_API_URL` and `AUTHINATOR_API_KEY` in `.env`
+- Check token hasn't expired (try logging out and back in)
+- Review Authinator logs for validation errors
 
 **"Cannot connect to Authinator"**
-- Verify Authinator service is running at the configured URL
-- Check network connectivity between RMAinator and Authinator
-- Review Authinator logs for authentication errors
+- Verify network connectivity: `curl $AUTHINATOR_API_URL/health`
+- Check firewall rules between RMAinator and Authinator
+- Ensure Authinator service is running
+
+### Backend Issues
 
 **Backend won't start**
 ```bash
-# Check migrations
+# Check for migration issues
 task backend:migrate
 
-# Activate virtual environment
-source backend/venv/bin/activate
-
-# Check dependencies
+# Activate venv and check dependencies
+source .venv/bin/activate
 pip install -r backend/requirements.txt
+
+# Check for configuration errors
+python backend/manage.py check
 ```
-
-**Frontend can't connect to backend**
-- Ensure backend is running on port 8000
-- Ensure Authinator is accessible from the frontend
-- Check CORS settings in `backend/config/settings.py`
-- Verify `VITE_API_URL` in frontend `.env`
-- Verify `VITE_AUTHINATOR_URL` for authentication redirects
-
-**No emails sending (development)**
-- This is expected! Emails print to console
-- Check backend terminal output
 
 **Database errors**
 ```bash
-# Reset database (⚠️ deletes all data)
+# Reset database (⚠️ destroys all data)
 task db:reset
 
 # Or manually
-cd backend
-rm db.sqlite3
-python manage.py migrate
+rm backend/db.sqlite3
+task backend:migrate
 ```
+
+### Frontend Issues
+
+**Frontend can't connect to backend**
+- Verify backend is running on port 8000
+- Check `VITE_API_URL` in `frontend/.env`
+- Check CORS settings in `backend/config/settings.py`
+- Verify `VITE_AUTHINATOR_URL` for login redirects
+
+**Build errors**
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+```
+
+### Email Issues
+
+**No emails in development**
+- This is expected! Django prints emails to console
+- Check backend terminal for email output
+
+**Emails not sending in production**
+- Verify SMTP credentials in `.env`
+- Test SMTP connection: `telnet $EMAIL_HOST $EMAIL_PORT`
+- Check SMTP server logs
+- Verify `EMAIL_USE_TLS` matches server config
+
+---
 
 ## 🤝 Contributing
 
 This is an internal project. For changes:
-1. Create a feature branch
-2. Make changes
-3. Run `task check` (tests + coverage)
-4. Submit PR for review
+
+1. Create a feature branch: `git checkout -b feat/your-feature`
+2. Make your changes
+3. Run quality checks: `task check` (must pass)
+4. Ensure coverage stays ≥85%: `task test:coverage`
+5. Commit with [Conventional Commits](https://www.conventionalcommits.org/): `feat(rma): add bulk export`
+6. Push and create PR
+
+---
 
 ## 📜 License
 
 Proprietary - Internal Use Only
 
-## ✅ Project Status
+---
 
-- ✅ Phase 1: Foundation (Auth, Models)
-- ✅ Phase 2: RMA Management (CRUD, UI)
-- ✅ Phase 3: Admin Features (Dashboard, Search)
-- ✅ Phase 4: Notifications & Alerts
-- ✅ Phase 5: Audit Logging
-- ✅ Phase 6: Testing (85% coverage - **COMPLETE**)
-- ✅ **v2.0.0**: Migrated to Authinator for authentication
-- 🔄 Polish & UX improvements (ongoing)
+## ✅ Version History
+
+- ✅ **v1.0.0** (2024-02-21) - Initial release with local auth, SSO, 2FA, WebAuthn
+- ✅ **v2.0.0** (2024-02-26) - **BREAKING:** Migrated to Authinator microservice architecture
+  - Removed local authentication (now via Authinator)
+  - Added 65 tests, 85% coverage
+  - Updated documentation for microservices
 
 ---
 
-Built for efficient RMA tracking 🚀
+## 🔗 Links
+
+- **Inator Platform**: https://github.com/losomode/inator
+- **Authinator**: https://github.com/losomode/AUTHinator
+- **Django Docs**: https://docs.djangoproject.com/
+- **React Docs**: https://react.dev/
+- **Task**: https://taskfile.dev/
+
+---
+
+*Built with ❤️ for efficient RMA tracking*
+
+> *"And by efficient, I mean it actually works. Unlike that time with the RETURN-inator Mark I. We don't talk about Mark I."*
