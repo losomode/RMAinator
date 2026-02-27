@@ -20,9 +20,11 @@
 
 ### Getting Started
 
-1. **Register**: Visit the registration page and create an account
-2. **Wait for Approval**: An administrator will approve your account (you'll receive an email)
-3. **Login**: Use your credentials to access the system (authentication is handled by Authinator)
+1. **Register**: Click "Sign Up" to register via Authinator (supports email/password, SSO, 2FA, WebAuthn)
+2. **Login**: Use your Authinator credentials to access RMAinator
+3. **Start Using**: Create and track RMAs immediately after login
+
+> **Note:** All authentication (registration, login, password reset, SSO, 2FA, WebAuthn) is handled by the external **Authinator** service. RMAinator validates your JWT token to grant access.
 
 ### Submitting an RMA
 
@@ -68,9 +70,9 @@
 ### Email Notifications
 
 You'll receive automatic emails when:
-- Your account is approved
 - Your RMA is approved or rejected
 - Your RMA state changes (received, diagnosed, repaired, shipped, completed)
+- An RMA becomes stale (exceeds configured timeout)
 
 ### RMA Lifecycle
 
@@ -111,51 +113,55 @@ stateDiagram-v2
 
 ### User Management
 
-**Approve New Users:**
-1. Go to **Admin** → **User Approvals**
-2. Review pending registrations
-3. Click **Approve** or **Reject** with a reason
+**User management is handled by Authinator:**
+- User registration, approval, roles, and permissions are managed in Authinator
+- RMAinator trusts JWT tokens issued by Authinator
+- Admin users are identified by their role in the JWT token
 
 ### RMA Management Workflow
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant System
+    participant Authinator
+    participant RMAinator
     participant Admin
     participant Email
     
-    User->>System: Register account
-    System->>Email: Notify admin of new user
-    Admin->>System: Approve user
-    System->>Email: Send approval notification
-    Email->>User: Account approved
+    User->>Authinator: Register/Login
+    Authinator->>User: JWT Token
     
-    User->>System: Submit RMA (with files)
-    System->>Email: Notify admins of new RMA
-    Admin->>System: Review & approve RMA
-    System->>Email: Notify user of approval
+    User->>RMAinator: Submit RMA (with JWT + files)
+    RMAinator->>Authinator: Validate JWT
+    Authinator->>RMAinator: User Info
+    RMAinator->>Email: Notify admins of new RMA
+    RMAinator->>User: RMA created
+    
+    Admin->>Authinator: Login as Admin
+    Authinator->>Admin: Admin JWT Token
+    Admin->>RMAinator: Review & approve RMA (with Admin JWT)
+    RMAinator->>Email: Notify user of approval
     Email->>User: RMA approved
     
-    Note over Admin,System: Device received at facility
-    Admin->>System: Update state: RECEIVED
-    System->>Email: Notify user
+    Note over Admin,RMAinator: Device received at facility
+    Admin->>RMAinator: Update state: RECEIVED
+    RMAinator->>Email: Notify user
     
-    Note over Admin,System: Technician diagnoses issue
-    Admin->>System: Update state: DIAGNOSED<br/>Add root cause
-    System->>Email: Notify user
+    Note over Admin,RMAinator: Technician diagnoses issue
+    Admin->>RMAinator: Update state: DIAGNOSED<br/>Add root cause
+    RMAinator->>Email: Notify user
     
-    Note over Admin,System: Device repaired
-    Admin->>System: Update state: REPAIRED<br/>Add parts/cost
-    System->>Email: Notify user
+    Note over Admin,RMAinator: Device repaired
+    Admin->>RMAinator: Update state: REPAIRED<br/>Add parts/cost
+    RMAinator->>Email: Notify user
     
-    Note over Admin,System: Device shipped back
-    Admin->>System: Update state: SHIPPED
-    System->>Email: Notify user
+    Note over Admin,RMAinator: Device shipped back
+    Admin->>RMAinator: Update state: SHIPPED
+    RMAinator->>Email: Notify user
     
-    Note over Admin,System: RMA process complete
-    Admin->>System: Update state: COMPLETED
-    System->>Email: Notify user
+    Note over Admin,RMAinator: RMA process complete
+    Admin->>RMAinator: Update state: COMPLETED
+    RMAinator->>Email: Notify user
     Email->>User: Device returned
 ```
 
@@ -186,8 +192,6 @@ Access the Django admin interface at `/admin/` to manage all aspects of the syst
 ![Django Admin - State History](docs/images/Admin3.png)
 *Complete state transition history for tracking workflow*
 
-![Django Admin - User Management](docs/images/Admin4.png)
-*User management with role and verification status*
 
 ### Stale RMA Management
 
@@ -271,8 +275,12 @@ npm run dev
 
 ```bash
 # Admin users are managed in Authinator
-# Create an admin user in Authinator with role='ADMIN'
-# No local user management required
+# Use the Authinator admin interface or API to create users with admin roles
+# RMAinator recognizes these roles from the JWT token:
+# - SYSTEM_ADMIN: Full system access
+# - CUSTOMER_ADMIN: Customer-level admin access
+# - CUSTOMER_USER: Standard user access
+# - CUSTOMER_READONLY: Read-only access
 ```
 
 ### Import Sample Data
@@ -491,24 +499,25 @@ server {
 ## 🎯 Features
 
 ### User Features
-- 🔐 **User Authentication** - Secure authentication via Authinator service
+- 🔐 **Secure Authentication** - Handled by Authinator (supports SSO, 2FA, WebAuthn)
 - 📦 **Multi-Device RMA Submission** - Submit one or multiple devices in a single request
 - 📎 **File Attachments** - Attach photos, PDFs, and documents to RMAs
 - 📊 **RMA Dashboard** - View active and archived RMAs with status updates
 - 🔔 **Email Notifications** - Receive automatic notifications on RMA state changes
 - 📜 **Audit History** - View complete history of RMA changes and status updates
 - 🔍 **RMA Groups** - Track multiple devices submitted together
+- 🔑 **JWT-Based Access** - Seamless authentication across microservices
 
 ### Admin Features
-- ✅ **User Approval** - Approve or reject new user registrations
-- 🎛️ **RMA Management** - Search, filter, and manage all RMAs
+- 🏛️ **RMA Management** - Search, filter, and manage all RMAs
 - 🔄 **State Management** - Update RMA states through defined workflow
 - 📈 **Admin Dashboard** - View metrics, trends, and recent activity
 - ⚠️ **Stale RMA Detection** - Configurable timeout alerts for delayed RMAs
 - 🔍 **Advanced Search** - Search by RMA#, serial number, owner, state, priority, date range
 - 📝 **Technical Fields** - Update diagnostic info (TX2 MAC, scripts, services, etc.)
-- 📧 **Admin Notifications** - Receive alerts for new RMAs, user registrations, and stale RMAs
+- 📧 **Admin Notifications** - Receive alerts for new RMAs and stale RMAs
 - 🕐 **Audit Trail** - Complete field-level change history for all RMAs
+- 🔐 **Role-Based Access** - Permissions enforced via Authinator JWT tokens
 
 ## 🏗️ Technology Stack
 
@@ -542,14 +551,16 @@ RMAinator validates JWT tokens issued by Authinator for API access.
 
 ## 🐛 Troubleshooting
 
-**"Account pending admin approval"**
-- An admin needs to approve your account
-- Contact your administrator
+**"Authentication failed" or "Invalid token"**
+- Ensure Authinator service is running and accessible
+- Check `AUTHINATOR_API_URL` and `AUTHINATOR_API_KEY` environment variables
+- Verify your JWT token is valid (not expired)
+- Try logging out and back in to get a fresh token
 
-**"Invalid credentials"**
-- Ensure your account is approved and verified
-- Check username/password
-- Try password reset (if configured)
+**"Cannot connect to Authinator"**
+- Verify Authinator service is running at the configured URL
+- Check network connectivity between RMAinator and Authinator
+- Review Authinator logs for authentication errors
 
 **Backend won't start**
 ```bash
@@ -565,8 +576,10 @@ pip install -r backend/requirements.txt
 
 **Frontend can't connect to backend**
 - Ensure backend is running on port 8000
-- Check CORS settings in `backend/rmainator/settings.py`
+- Ensure Authinator is accessible from the frontend
+- Check CORS settings in `backend/config/settings.py`
 - Verify `VITE_API_URL` in frontend `.env`
+- Verify `VITE_AUTHINATOR_URL` for authentication redirects
 
 **No emails sending (development)**
 - This is expected! Emails print to console
