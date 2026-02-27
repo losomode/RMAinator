@@ -2,6 +2,7 @@ import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { rmaAPI } from '../services/api';
+import AdminToolsNav from '../components/AdminToolsNav';
 import type { AdminDashboardMetrics } from '../types';
 
 const AdminDashboard = () => {
@@ -38,24 +39,7 @@ const AdminDashboard = () => {
 
   return (
     <>
-        {/* Quick Actions */}
-        <div style={styles.quickActions}>
-          <h2 style={styles.quickActionsTitle}>Admin Tools</h2>
-          <div style={styles.quickActionGrid}>
-            <button
-              onClick={() => navigate('/admin/rmas')}
-              style={styles.quickActionButton}
-            >
-              📋 Manage RMAs
-            </button>
-            <button
-              onClick={() => navigate('/admin/config')}
-              style={styles.quickActionButton}
-            >
-              ⚙️ Stale Config
-            </button>
-          </div>
-        </div>
+        <AdminToolsNav />
 
         {error && <div style={styles.error}>{error}</div>}
 
@@ -218,36 +202,6 @@ const StateCard = ({ state, count }: StateCardProps) => {
 };
 
 const styles: Record<string, CSSProperties> = {
-  quickActions: {
-    backgroundColor: 'white',
-    padding: '24px',
-    borderRadius: '8px',
-    marginBottom: '30px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  },
-  quickActionsTitle: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    marginBottom: '16px',
-    color: '#333',
-  },
-  quickActionGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '12px',
-  },
-  quickActionButton: {
-    padding: '12px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'background-color 0.2s',
-    textAlign: 'center',
-  },
   container: {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',

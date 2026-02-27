@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getToken } from '../utils/auth';
+import AdminToolsNav from '../components/AdminToolsNav';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
@@ -177,6 +178,8 @@ const AdminStaleConfig = () => {
 
   return (
     <div className="space-y-6">
+      <AdminToolsNav />
+      
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Stale RMA Configuration</h1>
       </div>

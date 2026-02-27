@@ -2,6 +2,7 @@ import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { rmaAPI } from '../services/api';
+import AdminToolsNav from '../components/AdminToolsNav';
 import type { RMA, RMAState, RMAPriority, RMAFilters } from '../types';
 
 const AdminRMAManagement = () => {
@@ -14,7 +15,7 @@ const AdminRMAManagement = () => {
     priority: '',
   });
   
-  const { user, logout, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,21 +79,10 @@ const AdminRMAManagement = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1>Admin - RMA Management</h1>
-        <div style={styles.headerRight}>
-          <button onClick={() => navigate('/admin')} style={styles.navBtn}>
-            Dashboard
-          </button>
-          <button onClick={() => navigate('/admin/users')} style={styles.navBtn}>
-            Manage Users
-          </button>
-          <span style={styles.username}>{user?.username}</span>
-          <button onClick={logout} style={styles.logoutBtn}>Logout</button>
-        </div>
-      </div>
+      <AdminToolsNav />
 
       <div style={styles.content}>
+        <h1 style={styles.pageTitle}>RMA Management</h1>
         {/* Search and Filters */}
         <div style={styles.searchSection}>
           <div style={styles.searchBar}>
@@ -233,45 +223,16 @@ const styles: Record<string, CSSProperties> = {
     minHeight: '100vh',
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: 'white',
-    padding: '20px 40px',
-    borderBottom: '1px solid #ddd',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '15px',
-    alignItems: 'center',
-  },
-  navBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  username: {
-    fontSize: '14px',
-    color: '#666',
-  },
-  logoutBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
   content: {
     maxWidth: '1400px',
     margin: '0 auto',
     padding: '40px 20px',
+  },
+  pageTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '24px',
+    color: '#333',
   },
   searchSection: {
     backgroundColor: 'white',
