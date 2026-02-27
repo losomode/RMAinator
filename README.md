@@ -639,24 +639,31 @@ npm run build
 
 ---
 
-## 🤝 Contributing
+## 📦 Repository
 
-This is an internal project. For changes:
+**GitHub**: [losomode/RMAinator](https://github.com/losomode/RMAinator)
 
-1. Create a feature branch: `git checkout -b feat/your-feature`
-2. Make your changes
-3. Run quality checks: `task check` (must pass)
-4. Ensure coverage stays ≥85%: `task test:coverage`
-5. Commit with [Conventional Commits](https://www.conventionalcommits.org/): `feat(rma): add bulk export`
-6. Push and create PR
+## 📝 License
 
----
+MIT — See [LICENSE](LICENSE) for details.
 
-## 📜 License
+## 👥 Contributing
 
-Proprietary - Internal Use Only
+Part of the Inator Platform. See main platform docs for contributing guidelines.
 
----
+**Quick workflow**:
+1. Create feature branch: `git checkout -b feat/your-feature`
+2. Make changes
+3. Run checks: `task check` (must pass, coverage ≥85%)
+4. Commit: [Conventional Commits](https://www.conventionalcommits.org/) format
+5. Push and create PR
+
+## ❓ Support
+
+- **Issues**: [GitHub Issues](https://github.com/losomode/RMAinator/issues)
+- **Platform Docs**: [Inator Platform](https://github.com/losomode/inator)
+- **Authinator**: [AUTHinator](https://github.com/losomode/AUTHinator)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
 ## ✅ Version History
 
@@ -668,16 +675,6 @@ Proprietary - Internal Use Only
 
 ---
 
-## 🔗 Links
-
-- **Inator Platform**: https://github.com/losomode/inator
-- **Authinator**: https://github.com/losomode/AUTHinator
-- **Django Docs**: https://docs.djangoproject.com/
-- **React Docs**: https://react.dev/
-- **Task**: https://taskfile.dev/
-
----
-
-*Built with ❤️ for efficient RMA tracking*
+*Built with ❤️ for the Inator Platform*
 
 > *"And by efficient, I mean it actually works. Unlike that time with the RETURN-inator Mark I. We don't talk about Mark I."*
