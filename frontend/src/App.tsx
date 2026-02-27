@@ -2,11 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
 import RMADetail from './pages/RMADetail';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRMAManagement from './pages/AdminRMAManagement';
 import AdminUserApproval from './pages/AdminUserApproval';
+import AdminStaleConfig from './pages/AdminStaleConfig';
 import CreateRMA from './pages/CreateRMA';
 import { getToken, setToken, redirectToLogin } from './utils/auth';
 
@@ -39,12 +39,12 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/rma/new" element={<CreateRMA />} />
           <Route path="/rma/:id" element={<RMADetail />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/rmas" element={<AdminRMAManagement />} />
           <Route path="/admin/users" element={<AdminUserApproval />} />
+          <Route path="/admin/config" element={<AdminStaleConfig />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

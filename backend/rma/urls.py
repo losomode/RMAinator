@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     RMAListCreateView,
     RMADetailView,
@@ -10,6 +11,11 @@ from .views import (
     RMAAuditHistoryView
 )
 from .dashboard import AdminDashboardView
+from notifications.views import StateTimeoutViewSet
+
+# Router for viewsets
+router = DefaultRouter()
+router.register(r'admin/stale-config', StateTimeoutViewSet, basename='stale-config')
 
 app_name = 'rma'
 
@@ -36,4 +42,7 @@ urlpatterns = [
     
     # Admin dashboard
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+    
+    # Include router URLs for viewsets
+    path('', include(router.urls)),
 ]
