@@ -49,12 +49,6 @@ const AdminDashboard = () => {
               📋 Manage RMAs
             </button>
             <button
-              onClick={() => navigate('/admin/users')}
-              style={styles.quickActionButton}
-            >
-              👥 User Approvals
-            </button>
-            <button
               onClick={() => navigate('/admin/config')}
               style={styles.quickActionButton}
             >

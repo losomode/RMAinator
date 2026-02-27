@@ -107,6 +107,9 @@ RMAinator System
 
 def send_new_user_notification_to_admins(user):
     """
+    DEPRECATED: User management is now handled by Authinator.
+    This function is kept for backwards compatibility but is no longer used.
+    
     Send email to admins when a new user registers.
     
     Args:
@@ -221,6 +224,9 @@ RMAinator Team
 
 def send_user_approved_email(user):
     """
+    DEPRECATED: User management is now handled by Authinator.
+    This function is kept for backwards compatibility but is no longer used.
+    
     Send email to user when their account is approved.
     
     Args:

@@ -1,6 +1,6 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { getToken, redirectToLogin } from '../utils/auth';
-import type { User, RMA, AdminDashboardMetrics, ProfileUpdateData, RMADevice } from '../types';
+import type { User, RMA, AdminDashboardMetrics, RMADevice } from '../types';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
@@ -41,17 +41,12 @@ api.interceptors.response.use(
 // Auth API - calls Authinator directly
 const AUTHINATOR_URL: string = import.meta.env.VITE_AUTHINATOR_URL || 'http://localhost:8001';
 export const authAPI = {
-  register: (data: Record<string, string>): Promise<AxiosResponse> => api.post('/auth/register/', data),
-  login: (data: Record<string, string>): Promise<AxiosResponse> => api.post('/auth/login/', data),
   getCurrentUser: (): Promise<AxiosResponse<User>> => {
     const token = getToken();
     return axios.get<User>(`${AUTHINATOR_URL}/api/auth/me/`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   },
-  updateProfile: (data: ProfileUpdateData): Promise<AxiosResponse<{ user: User; message: string }>> => api.patch('/auth/me/', data),
-  getPendingUsers: (): Promise<AxiosResponse<User[] | { results: User[] }>> => api.get('/auth/pending/'),
-  approveUser: (userId: number, approve: boolean): Promise<AxiosResponse> => api.post(`/auth/${userId}/approve/`, { approve }),
 };
 
 // RMA API

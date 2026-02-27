@@ -18,15 +18,13 @@ RMAinator is a multi-user web application for tracking Return Merchandise Author
 ### Functional Requirements
 
 #### Authentication & Authorization
-- ! MUST implement email/password authentication using Django's built-in authentication system
-- ! MUST support two user roles: User and Admin
-- ! MUST require admin approval before new users can submit RMAs
+- ! MUST integrate with Authinator for user authentication via JWT tokens
+- ! MUST support user roles from Authinator: SYSTEM_ADMIN, CUSTOMER_ADMIN, CUSTOMER_USER, CUSTOMER_READONLY
 - ! MUST use JWT tokens for API authentication
 - ! MUST NOT allow users to access other users' RMA data
 
 #### User Features
-- ! MUST allow users to register with email/password
-- ! MUST allow verified users to submit RMA requests (single or batch)
+- ! MUST allow authenticated users (via Authinator) to submit RMA requests (single or batch)
 - ! MUST allow users to attach files (photos, PDFs, documents) to RMA submissions
 - ! MUST allow users to view all their active RMAs with current status
 - ! MUST allow users to view their archived (completed/rejected) RMAs
@@ -35,7 +33,6 @@ RMAinator is a multi-user web application for tracking Return Merchandise Author
 - ! MUST prevent users from seeing other users' RMAs or devices
 
 #### Admin Features
-- ! MUST allow admins to view pending user registrations and approve/reject them
 - ! MUST allow admins to view new RMA requests
 - ! MUST allow admins to approve or reject RMA requests with reason
 - ! MUST allow admins to update RMA state through defined workflow
@@ -172,11 +169,6 @@ RMAinator is a multi-user web application for tracking Return Merchandise Author
 - `StateTimeout` - configurable timeouts per state per priority
 
 **API Endpoints:**
-- `/api/auth/register/` - user registration
-- `/api/auth/login/` - JWT token generation
-- `/api/auth/refresh/` - JWT token refresh
-- `/api/users/pending/` - list pending user approvals (admin)
-- `/api/users/{id}/approve/` - approve user (admin)
 - `/api/rma/` - list/create RMAs
 - `/api/rma/{id}/` - retrieve/update/delete RMA
 - `/api/rma/{id}/state/` - update RMA state (admin)
@@ -190,29 +182,23 @@ RMAinator is a multi-user web application for tracking Return Merchandise Author
 #### Frontend (React)
 
 **Key Components:**
-- `AuthProvider` - authentication context
-- `LoginPage` - login form
-- `RegisterPage` - registration form
+- `AuthProvider` - authentication context (integrates with Authinator)
 - `UserDashboard` - user view of their RMAs
 - `RMAList` - paginated RMA list with filters
 - `RMADetail` - detailed RMA view with history
 - `RMAForm` - RMA submission form
 - `AdminDashboard` - admin metrics and overview
 - `AdminRMAManagement` - admin RMA list/search/update
-- `AdminUserApproval` - pending user approvals
 - `AdminStaleConfig` - stale RMA configuration
 - `FileUpload` - file attachment component
 
 **Routes:**
-- `/login` - login page
-- `/register` - registration page
 - `/dashboard` - user dashboard (active RMAs)
 - `/rma/:id` - RMA detail view
 - `/rma/new` - create new RMA
 - `/rma/archived` - archived RMAs
 - `/admin` - admin dashboard
-- `/admin/rma` - admin RMA management
-- `/admin/users` - user approval management
+- `/admin/rmas` - admin RMA management
 - `/admin/config` - stale RMA configuration
 
 ### Data Flow Examples
@@ -295,13 +281,7 @@ RMAinator is a multi-user web application for tracking Return Merchandise Author
   - Add protected route wrapper
   - **Acceptance:** Can register and login via UI, JWT stored, protected routes work
 
-- Task 1.2.4: Implement user approval workflow
-  - Create pending users list endpoint (admin)
-  - Create approve/reject user endpoints (admin)
-  - Create admin user approval page in React
-  - **Acceptance:** Admin can view pending users and approve/reject them
-
-- Task 1.2.5: Write authentication tests
+- Task 1.2.4: Write authentication tests
   - Unit tests for User model
   - Integration tests for auth endpoints
   - Test role-based permissions
