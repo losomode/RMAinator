@@ -2,13 +2,10 @@ asgiref==3.11.1
 Django==6.0.2
 django-admin-interface==0.28.8
 django-allauth==65.3.0
-django-allauth-2fa==0.11.1
 django-colorfield==0.11.0
-qrcode==8.0
 django-cors-headers==4.9.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
-webauthn==2.3.0
 et_xmlfile==2.0.0
 numpy==2.4.2
 openpyxl==3.1.5
@@ -17,6 +14,7 @@ pillow==12.1.1
 prompt_toolkit==3.0.52
 PyJWT==2.11.0
 python-dateutil==2.9.0.post0
+python-dotenv==3.8
 python-magic==0.4.27
 requests==2.32.5
 six==1.17.0
