@@ -26,25 +26,25 @@ tasks:
     desc: Create venv and install backend dependencies
     cmds:
       - test -d "{{.ROOT_DIR}}/.venv" || python3 -m venv "{{.ROOT_DIR}}/.venv"
-      - python3 -m pip install -r "{{.BACKEND_DIR}}/requirements.txt"
+      - "{{.ROOT_DIR}}/.venv/bin/pip install -r {{.BACKEND_DIR}}/requirements.txt"
 
   backend:migrate:
     desc: Run Django migrations
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py migrate
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py migrate"
 
   backend:makemigrations:
     desc: Create new Django migrations
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py makemigrations
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py makemigrations"
 
   backend:test:
     desc: Run backend tests
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py test
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py test"
 
   backend:test:coverage:
     desc: Run backend tests with ../.venv/bin/coverage report
@@ -81,25 +81,25 @@ tasks:
     desc: Start Django development server
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py runserver 8002
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py runserver 8002"
 
   backend:shell:
     desc: Open Django shell
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py shell
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py shell"
 
   backend:check-stale:
     desc: Check for stale RMAs
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py check_stale_rmas
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py check_stale_rmas"
 
   backend:check-stale:dry:
     desc: Dry run of stale RMA check
     dir: "{{.BACKEND_DIR}}"
     cmds:
-      - python3 manage.py check_stale_rmas --dry-run
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py check_stale_rmas --dry-run"
 
   # === Frontend Tasks ===
 
