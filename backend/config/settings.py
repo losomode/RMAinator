@@ -152,11 +152,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 # Authinator configuration
-AUTHINATOR_API_URL = os.getenv('AUTHINATOR_API_URL', 'http://localhost:8000/api/auth/')
+AUTHINATOR_API_URL = os.getenv('AUTHINATOR_API_URL', 'http://localhost:8001/api/auth/')
 AUTHINATOR_VERIFY_SSL = os.getenv('AUTHINATOR_VERIFY_SSL', 'False').lower() == 'true'
 
 # Service Registry configuration
-SERVICE_REGISTRY_URL = os.getenv('SERVICE_REGISTRY_URL', 'http://localhost:8000/api/services/register/')
+SERVICE_REGISTRY_URL = os.getenv('SERVICE_REGISTRY_URL', 'http://localhost:8001/api/services/register/')
 SERVICE_REGISTRATION_KEY = os.getenv('SERVICE_REGISTRATION_KEY', 'dev-service-key-change-in-production')
 
 # REST Framework configuration
@@ -184,10 +184,8 @@ SIMPLE_JWT = {
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -199,8 +197,8 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
 ]
 
 # Email configuration (console backend for development)
