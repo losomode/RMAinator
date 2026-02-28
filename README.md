@@ -118,24 +118,47 @@ cd RMAinator
 task install
 
 # Configure Authinator connection
-cp .env.example .env
-# Edit .env with your AUTHINATOR_API_URL and AUTHINATOR_API_KEY
+cp backend/.env.example backend/.env
+# Edit backend/.env with your AUTHINATOR_API_URL and settings
+
+# Run migrations
+task backend:migrate
 ```
 
 ### Development
 
 ```bash
-# Terminal 1: Start backend
+# Terminal 1: Start backend (port 8002)
 task backend:dev
 
-# Terminal 2: Start frontend  
+# Terminal 2: Start frontend (port 3002)
 task frontend:dev
 ```
 
 **Access:**
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Django Admin: http://localhost:8000/admin
+- Frontend: http://localhost:3002
+- Backend API: http://localhost:8002
+- Django Admin: http://localhost:8002/admin
+
+### Troubleshooting Fresh Installs
+
+If services fail to start, check:
+
+```bash
+# Verify .env exists
+ls -la backend/.env
+
+# Run migrations if database doesn't exist
+task backend:migrate
+
+# Check that dependencies installed correctly
+ls -la .venv/                    # Backend venv should exist
+ls -la frontend/node_modules/    # Frontend deps should exist
+
+# View logs if running via platform orchestrator
+tail -50 /path/to/logs/RMAinator-backend.log
+tail -50 /path/to/logs/RMAinator-frontend.log
+```
 
 ### Production Deployment
 
