@@ -18,9 +18,9 @@ class Command(BaseCommand):
         service_data = {
             'name': 'RMAinator',
             'description': 'RMA and Repair Tracking',
-            'base_url': 'http://localhost:8001',
+            'base_url': 'http://localhost:8002',
             'api_prefix': '/api/rma',
-            'ui_url': 'http://localhost:3001',
+            'ui_url': 'http://localhost:3002',
             'icon': '🔧',
             'service_key': settings.SERVICE_REGISTRATION_KEY,
         }
