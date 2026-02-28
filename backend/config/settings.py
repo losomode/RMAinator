@@ -182,10 +182,9 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# CORS configuration
+# CORS configuration — all traffic flows through the Caddy gateway (:8080)
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3002',
-    'http://127.0.0.1:3002',
+    'http://localhost:8080',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -197,8 +196,7 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3002',
-    'http://127.0.0.1:3002',
+    'http://localhost:8080',
 ]
 
 # Email configuration (console backend for development)
