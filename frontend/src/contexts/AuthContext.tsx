@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authAPI } from '../services/api';
 import { getToken, redirectToLogin } from '../utils/auth';
-import type { User, AuthContextValue, ProfileUpdateData, ProfileUpdateResult } from '../types';
+import type { User, AuthContextValue } from '../types';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -43,27 +43,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     redirectToLogin();
   };
 
-  const updateProfile = async (profileData: ProfileUpdateData): Promise<ProfileUpdateResult> => {
-    try {
-      const response = await authAPI.updateProfile(profileData);
-      const { user: updatedUser } = response.data;
-      
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      
-      return {
-        success: true,
-        message: response.data.message
-      };
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: string | Record<string, string | string[]> } };
-      return {
-        success: false,
-        error: axiosError.response?.data || 'Profile update failed',
-      };
-    }
-  };
-
   const logout = (): void => {
     // Clear token and redirect to Authinator
     localStorage.removeItem('auth_token');
@@ -82,7 +61,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     user,
     login,
     register,
-    updateProfile,
     logout,
     setUserFromSSO,
     isAdmin: isAdmin ?? false,

@@ -8,14 +8,15 @@ interface LayoutProps { children: ReactNode; }
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
-  const navItems: NavItem[] = [
+  const allNavItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/rma/new', label: 'New RMA' },
-    { path: '/profile', label: 'Profile' },
     { path: '/admin', label: 'Admin', adminOnly: true },
   ];
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
   const isActive = (path: string): boolean => location.pathname.startsWith(path);
 

@@ -177,10 +177,86 @@ class RMAStateUpdateViewTest(TestCase):
         self.rma.refresh_from_db()
         self.assertEqual(self.rma.state, RMA.State.APPROVED)
     
-    def test_invalid_state_transition(self):
-        """Test invalid state transition is rejected."""
+    def test_admin_cannot_skip_forward(self):
+        """Test admin cannot skip forward states (e.g. SUBMITTED -> SHIPPED)."""
         authenticate_user(self.client, self.admin)
-        data = {'state': RMA.State.SHIPPED}  # Can't go from SUBMITTED to SHIPPED
+        data = {'state': RMA.State.SHIPPED}
+        response = self.client.post(
+            f'/api/rma/{self.rma.id}/state/',
+            data,
+            format='json'
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_admin_can_revert_state(self):
+        """Test admin can revert RMA to a prior state within active range."""
+        authenticate_user(self.client, self.admin)
+        self.rma.state = RMA.State.DIAGNOSED
+        self.rma.save()
+        
+        data = {'state': RMA.State.RECEIVED, 'notes': 'Need to re-examine'}
+        response = self.client.post(
+            f'/api/rma/{self.rma.id}/state/',
+            data,
+            format='json'
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.rma.refresh_from_db()
+        self.assertEqual(self.rma.state, RMA.State.RECEIVED)
+    
+    def test_admin_can_revert_to_submitted(self):
+        """Test admin can revert back to SUBMITTED from active range."""
+        authenticate_user(self.client, self.admin)
+        self.rma.state = RMA.State.APPROVED
+        self.rma.save()
+        
+        data = {'state': RMA.State.SUBMITTED, 'notes': 'Reverting approval'}
+        response = self.client.post(
+            f'/api/rma/{self.rma.id}/state/',
+            data,
+            format='json'
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.rma.refresh_from_db()
+        self.assertEqual(self.rma.state, RMA.State.SUBMITTED)
+    
+    def test_admin_cannot_reopen_completed(self):
+        """Test admin cannot reopen a completed RMA."""
+        authenticate_user(self.client, self.admin)
+        self.rma.state = RMA.State.COMPLETED
+        self.rma.save()
+        
+        data = {'state': RMA.State.SHIPPED}
+        response = self.client.post(
+            f'/api/rma/{self.rma.id}/state/',
+            data,
+            format='json'
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_admin_cannot_reopen_rejected(self):
+        """Test admin cannot reopen a rejected RMA."""
+        authenticate_user(self.client, self.admin)
+        self.rma.state = RMA.State.REJECTED
+        self.rma.save()
+        
+        data = {'state': RMA.State.SUBMITTED}
+        response = self.client.post(
+            f'/api/rma/{self.rma.id}/state/',
+            data,
+            format='json'
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_admin_cannot_set_same_state(self):
+        """Test admin gets error when setting same state."""
+        authenticate_user(self.client, self.admin)
+        data = {'state': RMA.State.SUBMITTED}
         response = self.client.post(
             f'/api/rma/{self.rma.id}/state/',
             data,

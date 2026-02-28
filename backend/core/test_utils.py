@@ -2,31 +2,7 @@
 Test utilities for RMAinator tests.
 Provides helpers for creating test users and mocking Authinator authentication.
 """
-from unittest.mock import Mock
-from core.authentication import AuthinatorUser
 from users.models import User
-
-
-class MockAuthinatorUser(AuthinatorUser):
-    """
-    Mock Authinator user for testing.
-    Can be used directly without needing to mock the Authinator API.
-    """
-    def __init__(self, user_id=1, username='testuser', email='test@example.com', 
-                 role='USER', customer_id=None, customer_name=None,
-                 is_verified=True, is_active=True):
-        """Initialize a mock user with test data."""
-        user_data = {
-            'id': user_id,
-            'username': username,
-            'email': email,
-            'role': role,
-            'customer_id': customer_id,
-            'customer_name': customer_name,
-            'is_verified': is_verified,
-            'is_active': is_active,
-        }
-        super().__init__(user_data)
 
 
 # Counter for generating unique usernames
@@ -69,9 +45,9 @@ def create_mock_user(is_admin=False, **kwargs):
     user = User.objects.create(**defaults)
     
     # Mark admins with Django's is_staff flag
-    if role in ['ADMIN', 'SYSTEM_ADMIN', 'CUSTOMER_ADMIN']:
+    if role == 'ADMIN':
         user.is_staff = True
-        user.is_admin = True  # Custom attribute for compatibility
+        user.is_admin = True
         user.save()
     else:
         user.is_admin = False
@@ -91,10 +67,9 @@ def authenticate_user(client, user):
     """
     Authenticate a test client with a mock user.
     Sets the user directly on the client for testing.
-    
+
     Args:
         client: Django test client or DRF APIClient
-        user: MockAuthinatorUser instance
+        user: users.User model instance (with is_admin attribute)
     """
-    # Store user for the test client to use
     client.force_authenticate(user=user)

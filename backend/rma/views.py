@@ -86,7 +86,7 @@ class RMAStateUpdateView(views.APIView):
         
         serializer = RMAStateUpdateSerializer(
             data=request.data,
-            context={'rma': rma}
+            context={'rma': rma, 'is_admin': request.user.is_admin}
         )
         serializer.is_valid(raise_exception=True)
         

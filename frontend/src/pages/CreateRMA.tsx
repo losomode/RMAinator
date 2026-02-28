@@ -25,12 +25,12 @@ const CreateRMA = () => {
 
   const addDevice = (): void => {
     setDevices([
-      ...devices,
       {
         serial_number: '',
         first_ship_date: '',
         fault_notes: '',
-      }
+      },
+      ...devices,
     ]);
   };
 

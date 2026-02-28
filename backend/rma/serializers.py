@@ -107,14 +107,32 @@ class RMAStateUpdateSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
     
     def validate_state(self, value):
-        """Validate state transition is valid."""
+        """Validate state transition is valid.
+        
+        Terminal states (COMPLETED/REJECTED) are permanent for everyone.
+        Normal forward transitions follow strict rules.
+        Admins can additionally revert to earlier states when the RMA
+        is in the active workflow range (APPROVED through SHIPPED).
+        """
         rma = self.context.get('rma')
         if not rma:
             return value
         
         current_state = rma.state
         
-        # Define valid transitions
+        # Terminal states are permanent — no transitions out, even for admins
+        if current_state in [RMA.State.COMPLETED, RMA.State.REJECTED]:
+            raise serializers.ValidationError(
+                f"Cannot transition from terminal state '{current_state}'"
+            )
+        
+        # Same state check
+        if value == current_state:
+            raise serializers.ValidationError(
+                f"RMA is already in state '{current_state}'"
+            )
+        
+        # Define valid forward transitions
         valid_transitions = {
             RMA.State.SUBMITTED: [RMA.State.APPROVED, RMA.State.REJECTED],
             RMA.State.APPROVED: [RMA.State.RECEIVED],
@@ -125,19 +143,36 @@ class RMAStateUpdateSerializer(serializers.Serializer):
             RMA.State.SHIPPED: [RMA.State.COMPLETED],
         }
         
-        # Terminal states cannot transition
-        if current_state in [RMA.State.COMPLETED, RMA.State.REJECTED]:
-            raise serializers.ValidationError(
-                f"Cannot transition from terminal state '{current_state}'"
-            )
+        # Normal forward transition — allowed for everyone
+        if value in valid_transitions.get(current_state, []):
+            return value
         
-        # Check if transition is valid
-        allowed_states = valid_transitions.get(current_state, [])
-        if value not in allowed_states:
-            raise serializers.ValidationError(
-                f"Invalid transition from '{current_state}' to '{value}'. "
-                f"Allowed: {', '.join(allowed_states)}"
-            )
+        # Admin backward transition within active workflow range
+        if self.context.get('is_admin'):
+            state_order = {
+                RMA.State.SUBMITTED: 0,
+                RMA.State.APPROVED: 1,
+                RMA.State.RECEIVED: 2,
+                RMA.State.DIAGNOSED: 3,
+                RMA.State.REPAIRED: 4,
+                RMA.State.REPLACED: 4,
+                RMA.State.SHIPPED: 5,
+            }
+            revertable_from = {
+                RMA.State.APPROVED, RMA.State.RECEIVED, RMA.State.DIAGNOSED,
+                RMA.State.REPAIRED, RMA.State.REPLACED, RMA.State.SHIPPED,
+            }
+            if (current_state in revertable_from and
+                    value in state_order and
+                    state_order[value] < state_order[current_state]):
+                return value
+        
+        # Invalid transition
+        allowed = valid_transitions.get(current_state, [])
+        raise serializers.ValidationError(
+            f"Invalid transition from '{current_state}' to '{value}'. "
+            f"Allowed: {', '.join(allowed)}"
+        )
         
         return value
 

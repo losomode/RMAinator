@@ -3,87 +3,107 @@ Custom authentication classes for RMAinator.
 
 Authenticates requests by validating JWT tokens with Authinator.
 """
+import logging
+
 from rest_framework import authentication
 from rest_framework import exceptions
 from core.authinator_client import authinator_client
 
+logger = logging.getLogger(__name__)
 
-class AuthinatorUser:
+
+def _get_or_create_local_user(user_data):
     """
-    Simple user object to store information fetched from Authinator.
-    This is not a Django model, just a container for user data.
+    Get or create a local users.User record for FK relations.
+
+    The local User model is a stub that exists only so that
+    RMAStateHistory.changed_by, AuditLog.user, etc. can use real
+    ForeignKey references.  We sync minimal fields from Authinator.
     """
-    
-    def __init__(self, user_data):
-        self.id = user_data['id']
-        self.username = user_data['username']
-        self.email = user_data['email']
-        self.role = user_data['role']
-        self.customer_id = user_data.get('customer_id')
-        self.customer_name = user_data.get('customer_name')
-        self.is_verified = user_data.get('is_verified', False)
-        self.is_active = user_data.get('is_active', False)
-        self.is_authenticated = True
-        # Add is_admin property for backward compatibility
-        self.is_admin = self.role in ['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']
-    
-    def is_system_admin(self):
-        """Check if user is a system admin."""
-        return self.role == 'SYSTEM_ADMIN'
-    
-    def is_customer_admin(self):
-        """Check if user is a customer admin."""
-        return self.role == 'CUSTOMER_ADMIN'
-    
-    def can_manage_users(self):
-        """Check if user can manage other users."""
-        return self.role in ['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']
-    
-    def can_edit_data(self):
-        """Check if user can edit data (not read-only)."""
-        return self.role != 'CUSTOMER_READONLY'
-    
-    def __str__(self):
-        return f"{self.username} ({self.role})"
+    from users.models import User  # late import to avoid circular deps
+
+    authinator_id = user_data['id']
+    defaults = {
+        'username': user_data['username'],
+        'email': user_data.get('email', ''),
+    }
+
+    user, created = User.objects.get_or_create(
+        id=authinator_id,
+        defaults=defaults,
+    )
+
+    # Keep username / email in sync on subsequent logins
+    if not created:
+        changed = False
+        for field, value in defaults.items():
+            if getattr(user, field) != value:
+                setattr(user, field, value)
+                changed = True
+        if changed:
+            user.save(update_fields=list(defaults.keys()))
+
+    return user
+
+
+def _attach_authinator_attrs(user, user_data):
+    """
+    Attach Authinator role / permission helpers directly onto the
+    local User model instance so permission classes and views can
+    use them without changes.
+    """
+    role = user_data.get('role', '')
+    user.role = role
+    user.customer_id_remote = user_data.get('customer_id')
+    user.customer_name = user_data.get('customer_name')
+    user.is_verified = user_data.get('is_verified', False)
+    user.is_admin = role == 'ADMIN'
+
+    # Attach helper methods (legacy aliases)
+    user.is_system_admin = lambda: role == 'ADMIN'
+    user.is_customer_admin = lambda: role == 'ADMIN'
+    user.can_manage_users = lambda: role == 'ADMIN'
 
 
 class AuthinatorJWTAuthentication(authentication.BaseAuthentication):
     """
     Custom authentication class that validates JWT tokens with Authinator.
-    
+
     This authentication class:
     1. Extracts the JWT token from the Authorization header
     2. Validates the token with Authinator API
-    3. Returns an AuthinatorUser object with user information
+    3. Returns a local users.User model instance (for FK compatibility)
+       augmented with Authinator role / permission attributes
     """
-    
+
     def authenticate(self, request):
         """
         Authenticate the request and return a two-tuple of (user, token).
         """
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        
+
         if not auth_header:
             return None
-        
+
         # Parse Bearer token
         parts = auth_header.split()
-        
+
         if len(parts) != 2 or parts[0].lower() != 'bearer':
             raise exceptions.AuthenticationFailed('Invalid authorization header format')
-        
+
         token = parts[1]
-        
+
         # Validate token with Authinator
         user_data = authinator_client.get_user_from_token(token)
-        
+
         if user_data is None:
             raise exceptions.AuthenticationFailed('Invalid or expired token')
-        
+
         if not user_data.get('is_active', True):
             raise exceptions.AuthenticationFailed('User account is not active')
-        
-        # Create user object
-        user = AuthinatorUser(user_data)
-        
+
+        # Resolve a real DB user for ForeignKey relations
+        user = _get_or_create_local_user(user_data)
+        _attach_authinator_attrs(user, user_data)
+
         return (user, token)

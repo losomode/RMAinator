@@ -4,8 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
+.venv/
 venv/
+env/
 ENV/
 build/
 develop-eggs/
@@ -88,3 +89,9 @@ backup/
 
 # Reference materials
 Reference/
+
+# Deft (local dev framework)
+deft/
+
+# Coverage
+coverage/

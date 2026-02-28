@@ -19,7 +19,7 @@ export type RMAState =
 /** RMA priority levels. */
 export type RMAPriority = 'LOW' | 'NORMAL' | 'HIGH';
 
-/** User roles within the application. */
+/** User roles within the application (must match Authinator backend). */
 export type UserRole = 'ADMIN' | 'USER';
 
 // -----------------------------------------------------------------------------
@@ -128,19 +128,11 @@ export interface AdminDashboardMetrics {
 // Auth Context
 // -----------------------------------------------------------------------------
 
-/** Result returned by updateProfile. */
-export interface ProfileUpdateResult {
-  success: boolean;
-  message?: string;
-  error?: string | Record<string, string | string[]>;
-}
-
 /** Shape of the AuthContext value. */
 export interface AuthContextValue {
   user: User | null;
   login: () => void;
   register: () => void;
-  updateProfile: (data: ProfileUpdateData) => Promise<ProfileUpdateResult>;
   logout: () => void;
   setUserFromSSO: (userData: User) => void;
   isAdmin: boolean;
@@ -151,27 +143,7 @@ export interface AuthContextValue {
 // Forms
 // -----------------------------------------------------------------------------
 
-/** Data sent when updating a user profile. */
-export interface ProfileUpdateData {
-  email: string;
-  first_name: string;
-  last_name: string;
-  current_password?: string;
-  new_password?: string;
-  new_password2?: string;
-}
-
-/** Local form state for the Profile page. */
-export interface ProfileFormData {
-  email: string;
-  first_name: string;
-  last_name: string;
-  current_password: string;
-  new_password: string;
-  new_password2: string;
-}
-
-/** A single device entry on the Create RMA form. */
+/** A single device entry
 export interface RMADevice {
   serial_number: string;
   first_ship_date: string;
@@ -186,17 +158,6 @@ export interface RegisterFormData {
   last_name: string;
   password: string;
   password2: string;
-}
-
-// -----------------------------------------------------------------------------
-// WebAuthn
-// -----------------------------------------------------------------------------
-
-/** A stored WebAuthn credential. */
-export interface WebAuthnCredential {
-  id: number;
-  name: string;
-  created_at: string;
 }
 
 // -----------------------------------------------------------------------------
