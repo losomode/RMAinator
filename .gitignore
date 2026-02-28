@@ -95,3 +95,7 @@ deft/
 
 # Coverage
 coverage/
+
+# Demo database
+db-demo.sqlite3
+*.demobuild

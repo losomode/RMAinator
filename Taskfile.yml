@@ -89,6 +89,12 @@ tasks:
     cmds:
       - "{{.ROOT_DIR}}/.venv/bin/python manage.py shell"
 
+  backend:manage:
+    desc: "Run arbitrary Django management command (usage: task backend:manage -- command args)"
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - "{{.ROOT_DIR}}/.venv/bin/python manage.py {{.CLI_ARGS}}"
+
   backend:check-stale:
     desc: Check for stale RMAs
     dir: "{{.BACKEND_DIR}}"
