@@ -12,7 +12,7 @@ vars:
   PROJECT_NAME: RMAinator
   BACKEND_DIR: backend
   FRONTEND_DIR: frontend
-  COVERAGE_THRESHOLD: 75
+  COVERAGE_THRESHOLD: 85
 tasks:
   default:
     desc: List all available tasks
@@ -23,14 +23,14 @@ tasks:
   # === Backend Tasks ===
   
   backend:install:
-    desc: Install backend dependencies
-    dir: "{{.BACKEND_DIR}}"
+    desc: Create venv and install backend dependencies
     cmds:
-      - pip install -r requirements.txt
-    sources:
-      - requirements.txt
-    generates:
-      - "{{.BACKEND_DIR}}/venv/**"
+      - |
+        if [ ! -d "{{.ROOT_DIR}}/.venv" ]; then
+          echo "Creating virtual environment..."
+          python3 -m venv "{{.ROOT_DIR}}/.venv"
+        fi
+      - pip install -r "{{.BACKEND_DIR}}/requirements.txt"
 
   backend:migrate:
     desc: Run Django migrations
@@ -160,15 +160,16 @@ tasks:
         fi
 
   frontend:test:
-    desc: Run frontend tests (if configured)
+    desc: Run frontend tests
     dir: "{{.FRONTEND_DIR}}"
     cmds:
-      - |
-        if grep -q '"test"' package.json 2>/dev/null; then
-          npm test
-        else
-          echo "⚠ No test script configured. Frontend tests need to be set up."
-        fi
+      - npm test
+
+  frontend:test:coverage:
+    desc: Run frontend tests with coverage report
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run test:coverage
 
   # === Combined Project Tasks ===
 
@@ -197,6 +198,7 @@ tasks:
     desc: Run tests with coverage (≥{{.COVERAGE_THRESHOLD}}%)
     deps:
       - backend:test:coverage
+      - frontend:test:coverage
 
   lint:
     desc: Lint all code
