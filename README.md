@@ -102,12 +102,24 @@ graph TB
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - Node.js 18+
 - [Task](https://taskfile.dev/) - `brew install go-task`
 - Access to Authinator (for JWT validation)
 
-### Installation
+### Platform Mode (Recommended)
+
+If you're using the [Inator Platform](https://github.com/losomode/inator):
+
+```bash
+# From the platform root (inator/)
+task setup           # Sets up all inators including RMAinator
+task start:all       # Starts all services + unified frontend + gateway
+
+# Access at http://localhost:8080
+```
+
+### Standalone Mode
 
 ```bash
 # Clone the repo
@@ -131,14 +143,17 @@ task backend:migrate
 # Terminal 1: Start backend (port 8002)
 task backend:dev
 
-# Terminal 2: Start frontend (port 3002)
+# Terminal 2: Start frontend (port 3002, standalone only)
 task frontend:dev
 ```
 
 **Access:**
-- Frontend: http://localhost:3002
+- Frontend (standalone): http://localhost:3002
+- Frontend (platform): http://localhost:8080
 - Backend API: http://localhost:8002
 - Django Admin: http://localhost:8002/admin
+
+**Note**: When running via the Inator Platform, the frontend is served from the unified SPA at `inator/frontend/`. The standalone frontend is only for isolated development.
 
 ### Troubleshooting Fresh Installs
 
@@ -294,6 +309,7 @@ graph LR
 - 🔔 **Email Notifications** - Automatic updates at each workflow stage
 - 📜 **Audit History** - View every change made to your RMA
 - 🔍 **Search & Filter** - Find RMAs by serial number, date, status
+- 🎨 **Unified UI** - Integrated into the platform's single-page React app
 
 ### 👨‍💼 Admin Features
 
@@ -379,8 +395,8 @@ task test:coverage
 python backend/manage.py test rma.test_models
 ```
 
-**Coverage Stats (85% overall, 87% unfiltered):**
-- ✅ 65 tests passing
+**Coverage Stats (85% overall):**
+- ✅ 65+ tests passing
 - ✅ RMA models, views, serializers: 95-99%
 - ✅ Admin dashboard: 98%
 - ✅ Notifications: 78%
