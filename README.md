@@ -434,8 +434,8 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 
-# Database (optional, SQLite default)
-DATABASE_URL=postgresql://user:pass@localhost/rmainator
+# Database (SQLite — set path for Docker volume persistence)
+SQLITE_PATH=/app/backend/data/db.sqlite3
 
 # File Storage (optional, local default)
 AWS_STORAGE_BUCKET_NAME=your-bucket
@@ -466,6 +466,30 @@ task backend:check-stale
 
 ## 🌐 Deployment
 
+### Docker Deployment (Recommended)
+
+RMAinator ships with a `Dockerfile` and is orchestrated by the [Inator Platform](https://github.com/losomode/inator) via Docker Compose.
+
+```bash
+# From the platform root (inator/)
+docker compose -f docker-compose.dev.yml up --build   # Development
+docker compose up --build                             # Production
+```
+
+SQLite data is persisted in a named Docker volume (`rmainator_data`). The database file lives at `/app/backend/data/db.sqlite3` inside the container.
+
+To run Django management commands inside the container:
+
+```bash
+# Migrations
+docker compose -f docker-compose.dev.yml exec rmainator python backend/manage.py migrate
+
+# Create superuser
+docker compose -f docker-compose.dev.yml exec rmainator python backend/manage.py createsuperuser
+```
+
+See the platform [docker-compose.dev.yml](https://github.com/losomode/inator/blob/main/docker-compose.dev.yml) and [docker-compose.yml](https://github.com/losomode/inator/blob/main/docker-compose.yml) for the full configuration.
+
 ### Production Checklist
 
 - [ ] Set `DEBUG=False` in environment
@@ -473,7 +497,7 @@ task backend:check-stale
 - [ ] Set `ALLOWED_HOSTS` correctly
 - [ ] Configure Authinator connection
 - [ ] Set up SMTP email (not console backend)
-- [ ] Use PostgreSQL (not SQLite)
+- [ ] Configure SQLite path via `SQLITE_PATH` env var (default: `backend/db.sqlite3`)
 - [ ] Configure S3/compatible storage for files
 - [ ] Set up HTTPS/TLS
 - [ ] Run migrations: `task backend:migrate`
