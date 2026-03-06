@@ -167,6 +167,10 @@ AUTHINATOR_VERIFY_SSL = os.getenv('AUTHINATOR_VERIFY_SSL', 'False').lower() == '
 SERVICE_REGISTRY_URL = os.getenv('SERVICE_REGISTRY_URL', 'http://localhost:8001/api/services/register/')
 SERVICE_REGISTRATION_KEY = os.getenv('SERVICE_REGISTRATION_KEY', 'dev-service-key-change-in-production')
 
+# USERinator integration — for user profile lookups and role_level
+USERINATOR_API_URL = os.getenv('USERINATOR_API_URL', 'http://localhost:8004/api/users/')
+USERINATOR_SERVICE_KEY = os.getenv('USERINATOR_SERVICE_KEY', 'dev-internal-service-key-change-in-production')
+
 # REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

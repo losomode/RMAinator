@@ -51,18 +51,24 @@ def _attach_authinator_attrs(user, user_data):
     Attach Authinator role / permission helpers directly onto the
     local User model instance so permission classes and views can
     use them without changes.
+
+    Supports both legacy role strings ('ADMIN'/'USER') and the newer
+    role_level system from USERinator-enriched JWTs.
     """
     role = user_data.get('role', '')
+    role_level = user_data.get('role_level', 0)
     user.role = role
+    user.role_level = role_level
     user.customer_id_remote = user_data.get('customer_id')
     user.customer_name = user_data.get('customer_name')
     user.is_verified = user_data.get('is_verified', False)
-    user.is_admin = role == 'ADMIN'
+    # Use role_level when available; fall back to legacy role string
+    user.is_admin = role_level >= 100 if role_level else role == 'ADMIN'
 
     # Attach helper methods (legacy aliases)
-    user.is_system_admin = lambda: role == 'ADMIN'
-    user.is_customer_admin = lambda: role == 'ADMIN'
-    user.can_manage_users = lambda: role == 'ADMIN'
+    user.is_system_admin = lambda: user.is_admin
+    user.is_customer_admin = lambda: user.is_admin
+    user.can_manage_users = lambda: user.is_admin
 
 
 class AuthinatorJWTAuthentication(authentication.BaseAuthentication):
