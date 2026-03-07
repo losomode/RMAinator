@@ -27,11 +27,14 @@ class RMAListCreateView(generics.ListCreateAPIView):
     
     def get_queryset(self):
         user = self.request.user
+        role_level = getattr(user, 'role_level', 0)
+        user_company = getattr(user, 'company_id_remote', None)
+        
         queryset = RMA.objects.select_related('owner').prefetch_related('attachments')
         
-        # Non-admin users only see their own RMAs
-        if not user.is_admin:
-            queryset = queryset.filter(owner=user)
+        # ADMIN sees all RMAs, others see only their company's RMAs
+        if role_level < 100 and user_company:
+            queryset = queryset.filter(company_id=user_company)
         
         # Filter by archived status
         archived = self.request.query_params.get('archived')
@@ -45,7 +48,11 @@ class RMAListCreateView(generics.ListCreateAPIView):
 
 
 class RMADetailView(generics.RetrieveUpdateDestroyAPIView):
-    """API endpoint to retrieve, update, or delete an RMA."""
+    """API endpoint to retrieve, update, or delete an RMA.
+    
+    - All users can view RMAs in their company
+    - Only ADMIN can edit or delete RMAs
+    """
     permission_classes = (IsAuthenticated,)
     
     def get_serializer_class(self):
@@ -55,15 +62,27 @@ class RMADetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def get_queryset(self):
         user = self.request.user
+        role_level = getattr(user, 'role_level', 0)
+        user_company = getattr(user, 'company_id_remote', None)
+        
         queryset = RMA.objects.select_related('owner').prefetch_related(
             'attachments', 'state_history', 'state_history__changed_by'
         )
         
-        # Non-admin users only see their own RMAs
-        if not user.is_admin:
-            queryset = queryset.filter(owner=user)
+        # ADMIN sees all RMAs, others see only their company's RMAs
+        if role_level < 100 and user_company:
+            queryset = queryset.filter(company_id=user_company)
         
         return queryset
+    
+    def check_permissions(self, request):
+        """Only ADMIN can edit or delete RMAs."""
+        super().check_permissions(request)
+        if request.method in ['PUT', 'PATCH', 'DELETE']:
+            role_level = getattr(request.user, 'role_level', 0)
+            if role_level < 100:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('Only ADMIN can edit or delete RMAs.')
     
     def perform_update(self, serializer):
         # Store user who made the change for state history
@@ -123,10 +142,14 @@ class RMAAttachmentUploadView(views.APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Check permissions: users can only upload to their own RMAs
-        if not request.user.is_admin and rma.owner != request.user:
+        # Check company-scoped permissions
+        role_level = getattr(request.user, 'role_level', 0)
+        user_company = getattr(request.user, 'company_id_remote', None)
+        
+        # ADMIN can upload to any RMA, others only to their company's RMAs
+        if role_level < 100 and rma.company_id != user_company:
             return Response(
-                {'error': 'You do not have permission to upload to this RMA'},
+                {'error': 'You can only upload to RMAs in your own company'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -158,11 +181,14 @@ class RMAAttachmentDeleteView(generics.DestroyAPIView):
     
     def get_queryset(self):
         user = self.request.user
+        role_level = getattr(user, 'role_level', 0)
+        user_company = getattr(user, 'company_id_remote', None)
+        
         queryset = super().get_queryset()
         
-        # Non-admin users can only delete attachments from their own RMAs
-        if not user.is_admin:
-            queryset = queryset.filter(rma__owner=user)
+        # ADMIN can delete any attachment, others only from their company's RMAs
+        if role_level < 100 and user_company:
+            queryset = queryset.filter(rma__company_id=user_company)
         
         return queryset
 
@@ -244,8 +270,12 @@ class RMAAuditHistoryView(generics.ListAPIView):
         except RMA.DoesNotExist:
             return AuditLog.objects.none()
         
-        # Check permissions: users can only view audit logs for their own RMAs
-        if not self.request.user.is_admin and rma.owner != self.request.user:
+        # Check company-scoped permissions
+        role_level = getattr(self.request.user, 'role_level', 0)
+        user_company = getattr(self.request.user, 'company_id_remote', None)
+        
+        # ADMIN can view all audit logs, others only for their company's RMAs
+        if role_level < 100 and rma.company_id != user_company:
             return AuditLog.objects.none()
         
         content_type = ContentType.objects.get_for_model(RMA)
@@ -257,7 +287,8 @@ class RMAAuditHistoryView(generics.ListAPIView):
         ).select_related('user')
         
         # Filter out admin-only field changes for non-admin users
-        if not self.request.user.is_admin:
+        role_level = getattr(self.request.user, 'role_level', 0)
+        if role_level < 100:
             admin_fields = [
                 'root_cause', 'parts_replaced', 'cost_to_repair', 'tx2_mac',
                 'script_ran', 'services_enabled', 'uptime_good', 'stream_good',
