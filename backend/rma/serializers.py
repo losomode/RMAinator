@@ -84,7 +84,10 @@ class RMACreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         # Set owner from request user
-        validated_data['owner'] = self.context['request'].user
+        request_user = self.context['request'].user
+        validated_data['owner'] = request_user
+        # Set company_id from user's company (for efficient company-scoped filtering)
+        validated_data['company_id'] = getattr(request_user, 'company_id_remote', None)
         return super().create(validated_data)
 
 
@@ -201,10 +204,12 @@ class RMAGroupCreateSerializer(serializers.Serializer):
         # Create RMAs in the group
         rmas_data = validated_data['rmas']
         rmas = []
+        company_id = getattr(request.user, 'company_id_remote', None)
         for rma_data in rmas_data:
             rma = RMA.objects.create(
                 owner=request.user,
                 group=group,
+                company_id=company_id,
                 **rma_data
             )
             rmas.append(rma)

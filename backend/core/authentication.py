@@ -8,6 +8,7 @@ import logging
 from rest_framework import authentication
 from rest_framework import exceptions
 from core.authinator_client import authinator_client
+from core.userinator_client import userinator_client
 
 logger = logging.getLogger(__name__)
 
@@ -46,21 +47,34 @@ def _get_or_create_local_user(user_data):
     return user
 
 
-def _attach_authinator_attrs(user, user_data):
+def _attach_authinator_attrs(user, user_data, context_data=None):
     """
     Attach Authinator role / permission helpers directly onto the
     local User model instance so permission classes and views can
     use them without changes.
 
-    Supports both legacy role strings ('ADMIN'/'USER') and the newer
-    role_level system from USERinator-enriched JWTs.
+    If context_data from USERinator is available, use role_level and
+    company_id from there (authoritative source). Otherwise fall back
+    to legacy data from AUTHinator.
     """
-    role = user_data.get('role', '')
-    role_level = user_data.get('role_level', 0)
+    if context_data:
+        # Use USERinator context as authoritative source
+        role_level = context_data.get('role_level', 0)
+        role = context_data.get('role_name', '')
+        company_id = context_data.get('company_id')
+        company_name = context_data.get('company_name')
+    else:
+        # Fallback to AUTHinator data (legacy)
+        role = user_data.get('role', '')
+        role_level = user_data.get('role_level', 0)
+        company_id = user_data.get('customer_id')
+        company_name = user_data.get('customer_name')
+    
     user.role = role
     user.role_level = role_level
-    user.customer_id_remote = user_data.get('customer_id')
-    user.customer_name = user_data.get('customer_name')
+    user.company_id_remote = company_id  # USERinator uses company_id
+    user.customer_id_remote = company_id  # Legacy alias
+    user.customer_name = company_name
     user.is_verified = user_data.get('is_verified', False)
     # Use role_level when available; fall back to legacy role string
     user.is_admin = role_level >= 100 if role_level else role == 'ADMIN'
@@ -110,6 +124,18 @@ class AuthinatorJWTAuthentication(authentication.BaseAuthentication):
 
         # Resolve a real DB user for ForeignKey relations
         user = _get_or_create_local_user(user_data)
-        _attach_authinator_attrs(user, user_data)
+        
+        # Fetch full context from USERinator (role_level, company, permissions)
+        user_id = user_data.get('id')
+        context_data = None
+        if user_id:
+            context_data = userinator_client.get_user_context(user_id, token)
+            if not context_data:
+                logger.warning(
+                    f'Failed to fetch USERinator context for user {user_id}, '
+                    'falling back to AUTHinator data'
+                )
+        
+        _attach_authinator_attrs(user, user_data, context_data)
 
         return (user, token)

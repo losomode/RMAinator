@@ -55,6 +55,12 @@ class RMA(models.Model):
         on_delete=models.CASCADE,
         related_name='rmas'
     )
+    company_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Company ID from USERinator (denormalized for efficient filtering)"
+    )
     group = models.ForeignKey(
         RMAGroup,
         on_delete=models.SET_NULL,
@@ -130,6 +136,7 @@ class RMA(models.Model):
             models.Index(fields=['serial_number']),
             models.Index(fields=['state']),
             models.Index(fields=['owner']),
+            models.Index(fields=['company_id']),
         ]
 
 

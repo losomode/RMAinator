@@ -22,6 +22,47 @@ class UserinatorClient:
         self.api_url = settings.USERINATOR_API_URL
         self.service_key = settings.USERINATOR_SERVICE_KEY
 
+    def get_user_context(self, user_id, token=None):
+        """
+        Fetch full user context including role_level, company, and permissions.
+        
+        Args:
+            user_id: User ID to fetch context for
+            token: Bearer token for authorization (optional, will use service key if not provided)
+        
+        Returns:
+            dict with context data including role_level, company_id, permissions, or None.
+        """
+        cache_key = f"userinator_context_{user_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        headers = {"X-Service-Key": self.service_key}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        
+        try:
+            response = requests.get(
+                f"{self.api_url}{user_id}/context/",
+                headers=headers,
+                timeout=3,
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                cache.set(cache_key, data, self.CACHE_TTL)
+                return data
+            
+            logger.info(
+                "USERinator context fetch for user %s returned %s",
+                user_id, response.status_code,
+            )
+        except requests.RequestException as exc:
+            logger.warning("USERinator unreachable for context %s: %s", user_id, exc)
+        
+        return None
+
     def get_user_profile(self, user_id):
         """
         Fetch profile data for a user from USERinator.
