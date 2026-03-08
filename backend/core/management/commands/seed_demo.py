@@ -23,15 +23,21 @@ def dt_days_ago(n):
     return timezone.now() - timedelta(days=n)
 
 
-# ── User stubs (must match Authinator seed_demo IDs) ─────────────
+# ── User stubs (must match Authinator/USERinator seed_demo IDs) ──
 USER_STUBS = [
-    # (id, username, email)  — IDs must match Authinator
-    (1, 'admin', 'admin@example.com'),
-    (2, 'sarah.chen', 'sarah@meridian-sec.com'),
-    (3, 'james.wilson', 'james@meridian-sec.com'),
-    (4, 'lisa.patel', 'lisa@apexmfg.com'),
-    (5, 'mike.torres', 'mike@apexmfg.com'),
-    (6, 'emma.jackson', 'emma@coastalnet.com'),
+    # (id, username, email, company_id)  — IDs must match Authinator
+    (1, 'admin', 'admin@example.com', None),  # Platform admin
+    (2, 'alice.admin', 'alice@example.com', None),  # Platform admin
+    (101, 'bob.manager', 'bob@acme.example.com', 1),  # Acme Corporation
+    (102, 'carol.member', 'carol@acme.example.com', 1),  # Acme Corporation
+    (103, 'dave.member', 'dave@acme.example.com', 1),  # Acme Corporation
+    (104, 'frank.manager', 'frank@globex.example.com', 2),  # Globex Industries
+    (105, 'grace.member', 'grace@globex.example.com', 2),  # Globex Industries
+    (106, 'henry.manager', 'henry@initech.example.com', 3),  # Initech LLC
+    (107, 'iris.member', 'iris@initech.example.com', 3),  # Initech LLC
+    (108, 'jack.manager', 'jack@wayne.example.com', 4),  # Wayne Enterprises
+    (109, 'kate.member', 'kate@wayne.example.com', 4),  # Wayne Enterprises
+    (110, 'leo.member', 'leo@wayne.example.com', 4),  # Wayne Enterprises
 ]
 
 # ── RMA definitions ──────────────────────────────────────────────
@@ -40,7 +46,7 @@ USER_STUBS = [
 #         SUBMITTED → REJECTED (terminal)
 RMAS = [
     {
-        'owner_username': 'james.wilson',
+        'owner_username': 'bob.manager',  # Acme Corporation
         'serial_number': 'CLR-M-0003',
         'first_ship_date': '2021-06-15',
         'fault_notes': 'Camera LR intermittent video freeze after 30 min of operation. '
@@ -52,7 +58,7 @@ RMAS = [
         'cost_to_repair': '$185.00',
     },
     {
-        'owner_username': 'james.wilson',
+        'owner_username': 'carol.member',  # Acme Corporation
         'serial_number': 'N46-M-0002',
         'first_ship_date': '2024-11-20',
         'fault_notes': 'Node 4.6 crashes under sustained analytics load. '
@@ -62,7 +68,7 @@ RMAS = [
         'root_cause': 'Faulty DIMM slot 2 — intermittent contact under thermal expansion',
     },
     {
-        'owner_username': 'lisa.patel',
+        'owner_username': 'frank.manager',  # Globex Industries
         'serial_number': 'CSR-A-0004',
         'first_ship_date': '2025-01-10',
         'fault_notes': 'Camera SR producing washed-out image with blue tint. '
@@ -71,7 +77,7 @@ RMAS = [
         'target_state': 'SUBMITTED',
     },
     {
-        'owner_username': 'mike.torres',
+        'owner_username': 'grace.member',  # Globex Industries
         'serial_number': 'CSR-A-0007',
         'first_ship_date': '2025-01-10',
         'fault_notes': 'Camera SR no video output. Power LED blinks but no stream. '
@@ -80,7 +86,7 @@ RMAS = [
         'target_state': 'APPROVED',
     },
     {
-        'owner_username': 'lisa.patel',
+        'owner_username': 'henry.manager',  # Initech LLC
         'serial_number': 'CSR-A-0009',
         'first_ship_date': '2025-01-10',
         'fault_notes': 'Wide-angle lens cracked — possibly shipping damage. '
@@ -89,7 +95,7 @@ RMAS = [
         'target_state': 'RECEIVED',
     },
     {
-        'owner_username': 'emma.jackson',
+        'owner_username': 'iris.member',  # Initech LLC
         'serial_number': 'CLR-M-0006',
         'first_ship_date': '2022-03-01',
         'fault_notes': 'Camera LR housing corroded, lens foggy. '
@@ -100,7 +106,7 @@ RMAS = [
                             'damage not covered. Recommend replacement purchase.',
     },
     {
-        'owner_username': 'sarah.chen',
+        'owner_username': 'jack.manager',  # Wayne Enterprises
         'serial_number': 'N46-M-0001',
         'first_ship_date': '2024-11-20',
         'fault_notes': 'Node 4.6 ethernet port 3 dead. Other ports functional. '
@@ -112,7 +118,7 @@ RMAS = [
         'cost_to_repair': '$95.00',
     },
     {
-        'owner_username': 'mike.torres',
+        'owner_username': 'kate.member',  # Wayne Enterprises
         'serial_number': 'NGA-A-0003',
         'first_ship_date': '2025-02-01',
         'fault_notes': 'Node 4.6 GA fan running at max RPM constantly. '
@@ -137,15 +143,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('Seeding RMAinator demo data...')
-        users = self._create_user_stubs()
-        admin = users.get('admin') or users.get('sarah.chen')
-        self._create_rmas(users, admin)
+        users, user_companies = self._create_user_stubs()
+        admin = users.get('admin') or users.get('alice.admin')
+        self._create_rmas(users, user_companies, admin)
         self.stdout.write(self.style.SUCCESS('✓ RMAinator demo data seeded'))
 
     def _create_user_stubs(self):
         """Create minimal local User records matching Authinator IDs."""
         users = {}
-        for uid, username, email in USER_STUBS:
+        user_companies = {}  # Track company_id for each user
+        for uid, username, email, company_id in USER_STUBS:
             user, created = User.objects.get_or_create(
                 id=uid,
                 defaults={'username': username, 'email': email},
@@ -155,16 +162,17 @@ class Command(BaseCommand):
                 user.email = email
                 user.save(update_fields=['username', 'email'])
             users[username] = user
+            user_companies[username] = company_id
             status = 'created' if created else 'exists'
-            self.stdout.write(f'  User stub: {username} (id={uid}, {status})')
-        return users
+            self.stdout.write(f'  User stub: {username} (id={uid}, company={company_id}, {status})')
+        return users, user_companies
 
-    def _create_rmas(self, users, admin_user):
+    def _create_rmas(self, users, user_companies, admin_user):
         """Create RMAs with state history."""
         # Create a group for the first two RMAs (same owner, same batch)
         group, _ = RMAGroup.objects.get_or_create(
             id=1,
-            defaults={'created_by': users['james.wilson']},
+            defaults={'created_by': users['bob.manager']},
         )
 
         for i, spec in enumerate(RMAS, start=1):
@@ -179,10 +187,14 @@ class Command(BaseCommand):
                 parts = spec['first_ship_date'].split('-')
                 first_ship = d(int(parts[0]), int(parts[1]), int(parts[2]))
 
+            # Get company_id from user mapping
+            company_id = user_companies.get(spec['owner_username'])
+            
             rma = RMA(
                 rma_number=i,
                 owner=owner,
-                group=group if spec['owner_username'] == 'james.wilson' else None,
+                company_id=company_id,
+                group=group if spec['owner_username'] == 'bob.manager' else None,
                 serial_number=spec['serial_number'],
                 first_ship_date=first_ship,
                 fault_notes=spec['fault_notes'],
