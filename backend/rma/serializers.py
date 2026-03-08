@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import RMA, RMAGroup, RMAAttachment, RMAStateHistory
 from core.serializers import UserSerializer
+from core.userinator_client import userinator_client
 
 
 class RMAAttachmentSerializer(serializers.ModelSerializer):
@@ -29,14 +30,27 @@ class RMAListSerializer(serializers.ModelSerializer):
     years_in_field = serializers.ReadOnlyField()
     is_archived = serializers.ReadOnlyField()
     group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
+    company_name = serializers.SerializerMethodField()
     
     class Meta:
         model = RMA
         fields = (
-            'id', 'rma_number', 'serial_number', 'owner', 'state', 'priority',
-            'created_at', 'updated_at', 'is_archived', 'years_in_field', 'group_id'
+            'id', 'rma_number', 'serial_number', 'owner', 'company_id', 'company_name',
+            'state', 'priority', 'created_at', 'updated_at', 'is_archived',
+            'years_in_field', 'group_id'
         )
         read_only_fields = ('id', 'rma_number', 'owner', 'created_at', 'updated_at', 'group_id')
+    
+    def get_company_name(self, obj):
+        """Fetch company name from USERinator."""
+        if obj.company_id is None:
+            return None
+        
+        company_data = userinator_client.get_company(obj.company_id)
+        if company_data:
+            return company_data.get('name')
+        
+        return None
 
 
 class RMADetailSerializer(serializers.ModelSerializer):
@@ -46,6 +60,7 @@ class RMADetailSerializer(serializers.ModelSerializer):
     state_history = RMAStateHistorySerializer(many=True, read_only=True)
     years_in_field = serializers.ReadOnlyField()
     is_archived = serializers.ReadOnlyField()
+    company_name = serializers.SerializerMethodField()
     
     class Meta:
         model = RMA
@@ -54,6 +69,17 @@ class RMADetailSerializer(serializers.ModelSerializer):
             'id', 'rma_number', 'owner', 'created_at', 'updated_at',
             'years_in_field', 'is_archived'
         )
+    
+    def get_company_name(self, obj):
+        """Fetch company name from USERinator."""
+        if obj.company_id is None:
+            return None
+        
+        company_data = userinator_client.get_company(obj.company_id)
+        if company_data:
+            return company_data.get('name')
+        
+        return None
     
     def to_representation(self, instance):
         """Customize representation based on user role."""

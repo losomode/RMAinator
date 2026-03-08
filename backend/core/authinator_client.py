@@ -6,7 +6,6 @@ user/customer information from the Authinator service.
 """
 import requests
 from django.conf import settings
-from django.core.cache import cache
 import logging
 
 logger = logging.getLogger(__name__)

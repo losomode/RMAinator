@@ -36,6 +36,15 @@ class RMAListCreateView(generics.ListCreateAPIView):
         if role_level < 100 and user_company:
             queryset = queryset.filter(company_id=user_company)
         
+        # ADMIN can filter by company (non-admins cannot override their company scope)
+        company_filter = self.request.query_params.get('company')
+        if company_filter and role_level >= 100:
+            try:
+                company_id = int(company_filter)
+                queryset = queryset.filter(company_id=company_id)
+            except (ValueError, TypeError):
+                pass  # Ignore invalid company_id
+        
         # Filter by archived status
         archived = self.request.query_params.get('archived')
         if archived is not None:

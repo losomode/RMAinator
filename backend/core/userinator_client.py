@@ -8,7 +8,6 @@ import logging
 
 import requests
 from django.conf import settings
-from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +19,7 @@ class UserinatorClient:
 
     def __init__(self):
         self.api_url = settings.USERINATOR_API_URL
+        self.companies_api_url = settings.USERINATOR_API_URL.replace('/users/', '/companies/')
         self.service_key = settings.USERINATOR_SERVICE_KEY
 
     def get_user_context(self, user_id, token=None):
@@ -119,6 +119,38 @@ class UserinatorClient:
             logger.warning("USERinator batch fetch failed: %s", exc)
 
         return []
+
+    def get_company(self, company_id):
+        """
+        Fetch company details from USERinator.
+
+        Args:
+            company_id: Company ID to fetch
+
+        Returns:
+            dict with company data (id, name, etc.), or None if unavailable.
+        """
+        if company_id is None:
+            return None
+
+        try:
+            response = requests.get(
+                f"{self.companies_api_url}{company_id}/",
+                headers={"X-Service-Key": self.service_key},
+                timeout=3,
+            )
+
+            if response.status_code == 200:
+                return response.json()
+
+            logger.info(
+                "USERinator company fetch for company %s returned %s",
+                company_id, response.status_code,
+            )
+        except requests.RequestException as exc:
+            logger.warning("USERinator unreachable for company %s: %s", company_id, exc)
+
+        return None
 
 
 # Singleton instance
