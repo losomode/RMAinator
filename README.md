@@ -331,6 +331,7 @@ graph LR
 - 🔔 **Email Notifications** - Automatic updates at each workflow stage
 - 📜 **Audit History** - View every change made to your RMA
 - 🔍 **Search & Filter** - Find RMAs by serial number, date, status
+- 🏢 **Company Visibility** - See which company each RMA belongs to (admins)
 - 🎨 **Unified UI** - Integrated into the platform's single-page React app
 
 ### 👨‍💼 Admin Features
@@ -339,7 +340,8 @@ graph LR
 - 🔄 **State Management** - Transition RMAs through defined workflow
 - 📈 **Admin Dashboard** - Metrics, trends, recent activity at a glance
 - ⚠️ **Stale RMA Detection** - Configurable timeout alerts by state/priority
-- 🔍 **Advanced Search** - Filter by RMA#, serial, owner, state, priority, dates
+- 🔍 **Advanced Search** - Filter by RMA#, serial, owner, state, priority, company, dates
+- 🏢 **Company Filtering** - Filter RMAs by company in dashboard and search
 - 📝 **Technical Fields** - Root cause, parts, costs, diagnostic details
 - 📧 **Admin Notifications** - Alerts for new RMAs and stale items
 - 🕐 **Complete Audit Trail** - Field-level change history
@@ -364,11 +366,14 @@ Roles come from the JWT issued by [Authinator](https://github.com/losomode/AUTHi
   - View and manage all RMAs across all companies
   - Access admin dashboard with cross-company metrics
   - Can transition any RMA through workflow states
+  - See company name badges on RMA cards (green 🏢 icon)
+  - Filter RMAs by company using dropdown filters
 
 - **Company users** (managers and members):
   - View only their own company's RMAs
   - Cannot see other companies' data
   - Managers can create and edit RMAs; members are read-only
+  - Company name shown in RMA detail pages for context
 
 See the [Demo Database Guide](https://github.com/losomode/inator/blob/main/docs/DEMO_DATABASE.md) for examples testing RBAC with different user accounts.
 
@@ -614,6 +619,7 @@ Authorization: Bearer <jwt_token>
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | `GET` | `/api/rma/` | List user's RMAs | User |
+| `GET` | `/api/rma/?company=<id>` | Filter RMAs by company | Admin |
 | `POST` | `/api/rma/` | Create RMA | User |
 | `POST` | `/api/rma/group/` | Create RMA group | User |
 | `GET` | `/api/rma/{id}/` | RMA details | User |
@@ -622,6 +628,7 @@ Authorization: Bearer <jwt_token>
 | `GET` | `/api/rma/{id}/audit/` | Audit history | User/Admin |
 | `POST` | `/api/rma/{id}/attachments/` | Upload file | User/Admin |
 | `GET` | `/api/rma/search/` | Advanced search | Admin |
+| `GET` | `/api/rma/search/?company=<id>` | Search with company filter | Admin |
 | `GET` | `/api/rma/admin/dashboard/` | Admin metrics | Admin |
 
 ### Example: Create RMA
