@@ -249,6 +249,15 @@ class RMASearchView(generics.ListAPIView):
         if priority:
             queryset = queryset.filter(priority=priority)
         
+        # Filter by company
+        company = self.request.query_params.get('company')
+        if company:
+            try:
+                company_id = int(company)
+                queryset = queryset.filter(company_id=company_id)
+            except (ValueError, TypeError):
+                pass  # Ignore invalid company_id
+        
         # Filter by group
         group_id = self.request.query_params.get('group')
         if group_id:
