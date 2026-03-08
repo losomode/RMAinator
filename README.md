@@ -155,6 +155,28 @@ task frontend:dev
 
 **Note**: When running via the Inator Platform, the frontend is served from the unified SPA at `inator/frontend/`. The standalone frontend is only for isolated development.
 
+### Demo Database
+
+The Inator Platform provides a complete demo database with realistic RMA data. See the [Demo Database Guide](https://github.com/losomode/inator/blob/main/docs/DEMO_DATABASE.md) for full details.
+
+```bash
+# From the platform root (inator/)
+task setup:demodb        # Build demo databases
+task demodb:activate     # Activate demo data
+task restart:all         # Restart all services
+```
+
+**Demo data includes:**
+- 8 RMAs distributed across 4 companies (2 per company)
+- Various RMA states (SUBMITTED, APPROVED, RECEIVED, etc.)
+- Realistic serial numbers, fault notes, and repair details
+- Complete RBAC filtering by company
+
+**Test RBAC:**
+- Login as `admin/admin` to see all 8 RMAs across all companies
+- Login as `bob.manager/manager` to see only Acme's 2 RMAs
+- Login as `frank.manager/manager` to see only Globex's 2 RMAs
+
 ### Troubleshooting Fresh Installs
 
 If services fail to start, check:
@@ -323,6 +345,32 @@ graph LR
 - 🕐 **Complete Audit Trail** - Field-level change history
 - 🔐 **Role-Based Access** - Permissions via Authinator JWT tokens
 - 📊 **Reporting** - Export capabilities, analytics
+
+## Roles & RBAC
+
+RMAinator enforces company-scoped access control:
+
+| Role | Level | Scope |
+|------|-------|-------|
+| **ADMIN** | 100 | Full access to all RMAs across all companies |
+| **MANAGER** | 30 | View and manage RMAs within their company only |
+| **MEMBER** | 10 | View RMAs within their company only |
+
+Roles come from the JWT issued by [Authinator](https://github.com/losomode/AUTHinator). RMAinator never stores credentials.
+
+### RBAC Filtering
+
+- **Platform admins** (no company affiliation):
+  - View and manage all RMAs across all companies
+  - Access admin dashboard with cross-company metrics
+  - Can transition any RMA through workflow states
+
+- **Company users** (managers and members):
+  - View only their own company's RMAs
+  - Cannot see other companies' data
+  - Managers can create and edit RMAs; members are read-only
+
+See the [Demo Database Guide](https://github.com/losomode/inator/blob/main/docs/DEMO_DATABASE.md) for examples testing RBAC with different user accounts.
 
 ---
 
