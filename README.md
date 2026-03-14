@@ -153,7 +153,7 @@ task frontend:dev
 - Backend API: http://localhost:8002
 - Django Admin: http://localhost:8002/admin
 
-**Note**: When running via the Inator Platform, the frontend is served from the unified SPA at `inator/frontend/`. The standalone frontend is only for isolated development.
+**Note**: Each inator serves its own frontend SPA. When running via the Inator Platform, access all services through the Caddy gateway at `http://localhost:8080`. RMAinator's frontend is served at `/rma/`.
 
 ### Demo Database
 
@@ -413,15 +413,16 @@ RMAinator/
 │   │   └── models.py                 # For FK relations only
 │   ├── requirements.txt              # Python dependencies
 │   └── manage.py                     # Django CLI
-├── frontend/                         # React application
+├── frontend/                         # React SPA (served at /rma/ via Caddy)
 │   ├── src/
-│   │   ├── pages/                    # Route components
-│   │   ├── components/               # Reusable UI components
-│   │   ├── services/                 # API client
-│   │   ├── contexts/                 # React contexts (auth, etc.)
-│   │   └── types.ts                  # TypeScript definitions
-│   ├── package.json                  # Node dependencies
-│   └── vite.config.ts                # Vite configuration
+│   │   ├── App.tsx                   # BrowserRouter (basename=/rma) + routes
+│   │   ├── main.tsx                  # Entry point
+│   │   ├── pages/                    # Dashboard, CreateRMA, RMADetail, Admin*
+│   │   ├── components/               # AdminToolsNav, TimeoutPicker
+│   │   ├── api.ts                    # RMA-specific API calls
+│   │   └── types.ts                  # RMA types and state colors
+│   ├── vite.config.ts                # base=/rma/, @inator/shared alias, Tailwind v4
+│   └── package.json
 ├── docs/                             # Documentation
 │   └── images/                       # Screenshots
 ├── Taskfile.yml                      # Task automation
