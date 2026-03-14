@@ -1,54 +1,93 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import RMADetail from './pages/RMADetail';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminRMAManagement from './pages/AdminRMAManagement';
-import AdminStaleConfig from './pages/AdminStaleConfig';
-import CreateRMA from './pages/CreateRMA';
-import { getToken, setToken, redirectToLogin } from './utils/auth';
+import { AuthProvider } from '@inator/shared/auth/AuthProvider';
+import { ProtectedRoute } from '@inator/shared/auth/ProtectedRoute';
+import { Layout } from '@inator/shared/layout/Layout';
+import type { NavItem } from '@inator/shared/types';
+import { Dashboard } from './pages/Dashboard';
+import { CreateRMA } from './pages/CreateRMA';
+import { RMADetail } from './pages/RMADetail';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminRMAManagement } from './pages/AdminRMAManagement';
+import { AdminStaleConfig } from './pages/AdminStaleConfig';
 
-function App() {
-  const [isReady, setIsReady] = useState(false);
+const NAV_ITEMS: NavItem[] = [
+  { path: '/', label: '📋 Dashboard' },
+  { path: '/new', label: '➕ New RMA' },
+  { path: '/admin', label: '🛠️ Admin Tools', adminOnly: true },
+];
 
-  useEffect(() => {
-    // Handle token from URL parameter FIRST
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    
-    if (tokenFromUrl) {
-      setToken(tokenFromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsReady(true);
-    } else if (!getToken()) {
-      redirectToLogin();
-    } else {
-      setIsReady(true);
-    }
-  }, []);
-
-  if (!isReady) {
-    return <div>Loading...</div>;
-  }
-
+/**
+ * RMAinator frontend — manages RMA workflow for all users.
+ * Served under /rma via Caddy reverse proxy.
+ */
+export default function App(): React.JSX.Element {
   return (
-    <BrowserRouter>
-      <Layout>
+    <BrowserRouter basename="/rma">
+      <AuthProvider>
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/rma/new" element={<CreateRMA />} />
-          <Route path="/rma/:id" element={<RMADetail />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/rmas" element={<AdminRMAManagement />} />
-          <Route path="/admin/config" element={<AdminStaleConfig />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/new"
+            element={
+              <ProtectedRoute>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <CreateRMA />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:id"
+            element={
+              <ProtectedRoute>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <RMADetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <AdminDashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/manage"
+            element={
+              <ProtectedRoute adminOnly>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <AdminRMAManagement />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/stale-config"
+            element={
+              <ProtectedRoute adminOnly>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <AdminStaleConfig />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Layout>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
-
-export default App;

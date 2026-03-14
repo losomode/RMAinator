@@ -20,7 +20,8 @@ class Command(BaseCommand):
             'description': 'RMA and Repair Tracking',
             'base_url': 'http://localhost:8002',
             'api_prefix': '/api/rma',
-            'ui_url': 'http://localhost:3002',
+            'ui_url': 'http://localhost:8080/rma',
+            'ui_path': '/rma',
             'icon': '🔧',
             'service_key': settings.SERVICE_REGISTRATION_KEY,
         }

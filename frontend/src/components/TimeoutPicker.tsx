@@ -6,190 +6,110 @@ interface TimeoutPickerProps {
   onCancel: () => void;
 }
 
-const TimeoutPicker = ({ initialHours, onSave, onCancel }: TimeoutPickerProps) => {
+const PRESETS = [
+  { label: '4h', hours: 4 },
+  { label: '8h', hours: 8 },
+  { label: '12h', hours: 12 },
+  { label: '1d', hours: 24 },
+  { label: '2d', hours: 48 },
+  { label: '3d', hours: 72 },
+  { label: '5d', hours: 120 },
+  { label: '1w', hours: 168 },
+] as const;
+
+/** Format hours into a human-friendly label. */
+export function formatHours(hours: number): string {
+  if (hours < 24) return `${String(hours)}h`;
+  if (hours % 168 === 0) return `${String(hours / 168)}w`;
+  if (hours % 24 === 0) return `${String(hours / 24)}d`;
+  return `${String(hours)}h`;
+}
+
+/** Modal-friendly timeout picker with presets and custom input. */
+export function TimeoutPicker({
+  initialHours,
+  onSave,
+  onCancel,
+}: TimeoutPickerProps): React.JSX.Element {
   const [selectedHours, setSelectedHours] = useState(initialHours);
   const [customMode, setCustomMode] = useState(false);
 
-  // Common presets in hours
-  const presets = [
-    { label: '4h', hours: 4 },
-    { label: '8h', hours: 8 },
-    { label: '12h', hours: 12 },
-    { label: '1d', hours: 24 },
-    { label: '2d', hours: 48 },
-    { label: '3d', hours: 72 },
-    { label: '5d', hours: 120 },
-    { label: '1w', hours: 168 },
-  ];
-
-  const formatDisplay = (hours: number): string => {
-    if (hours < 24) {
-      return `${hours}h`;
-    } else if (hours % 168 === 0) {
-      return `${hours / 168}w`;
-    } else if (hours % 24 === 0) {
-      return `${hours / 24}d`;
-    } else {
-      return `${hours}h`;
-    }
-  };
-
-  const handlePresetClick = (hours: number) => {
-    setSelectedHours(hours);
-    setCustomMode(false);
-  };
-
-  const handleCustomClick = () => {
-    setCustomMode(true);
-  };
-
-  const handleSave = () => {
-    if (selectedHours <= 0) {
-      alert('Timeout must be greater than 0 hours');
-      return;
-    }
+  const handleSave = (): void => {
+    if (selectedHours <= 0) return;
     onSave(selectedHours);
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.presets}>
-        {presets.map((preset) => (
+    <div className="min-w-[400px] rounded-lg border-2 border-blue-500 bg-gray-50 p-4">
+      {/* Presets */}
+      <div className="mb-3 grid grid-cols-5 gap-2">
+        {PRESETS.map((preset) => (
           <button
             key={preset.hours}
-            onClick={() => handlePresetClick(preset.hours)}
-            style={{
-              ...styles.presetButton,
-              ...(selectedHours === preset.hours && !customMode ? styles.presetButtonActive : {}),
+            type="button"
+            onClick={() => {
+              setSelectedHours(preset.hours);
+              setCustomMode(false);
             }}
+            className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              selectedHours === preset.hours && !customMode
+                ? 'border-blue-600 bg-blue-600 text-white'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+            }`}
           >
             {preset.label}
           </button>
         ))}
         <button
-          onClick={handleCustomClick}
-          style={{
-            ...styles.presetButton,
-            ...(customMode ? styles.presetButtonActive : {}),
-          }}
+          type="button"
+          onClick={() => setCustomMode(true)}
+          className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+            customMode
+              ? 'border-blue-600 bg-blue-600 text-white'
+              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+          }`}
         >
           Custom
         </button>
       </div>
 
+      {/* Custom input */}
       {customMode && (
-        <div style={styles.customInput}>
+        <div className="mb-3 flex items-center gap-2">
           <input
             type="number"
             min="1"
             value={selectedHours}
             onChange={(e) => setSelectedHours(parseInt(e.target.value, 10) || 0)}
-            style={styles.input}
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
             placeholder="Hours"
-            autoFocus
           />
-          <span style={styles.inputLabel}>hours</span>
+          <span className="text-sm font-medium text-gray-500">hours</span>
         </div>
       )}
 
-      <div style={styles.display}>
-        Selected: <strong>{formatDisplay(selectedHours)}</strong>
+      {/* Display */}
+      <div className="mb-3 rounded-md bg-white p-3 text-center text-sm text-gray-700">
+        Selected: <strong>{formatHours(selectedHours)}</strong>
       </div>
 
-      <div style={styles.actions}>
-        <button onClick={handleSave} style={styles.saveButton}>
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          className="rounded-md bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700"
+        >
           Save
         </button>
-        <button onClick={onCancel} style={styles.cancelButton}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md bg-gray-500 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-600"
+        >
           Cancel
         </button>
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: '16px',
-    backgroundColor: '#f9fafb',
-    border: '2px solid #3b82f6',
-    borderRadius: '8px',
-    minWidth: '400px',
-  },
-  presets: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: '8px',
-    marginBottom: '12px',
-  },
-  presetButton: {
-    padding: '8px 12px',
-    backgroundColor: 'white',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: '500' as const,
-    color: '#374151',
-    transition: 'all 0.2s',
-  },
-  presetButtonActive: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    borderColor: '#2563eb',
-  },
-  customInput: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-  },
-  input: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-  },
-  inputLabel: {
-    fontSize: '14px',
-    color: '#6b7280',
-    fontWeight: '500' as const,
-  },
-  display: {
-    padding: '12px',
-    backgroundColor: 'white',
-    borderRadius: '6px',
-    fontSize: '14px',
-    color: '#374151',
-    marginBottom: '12px',
-    textAlign: 'center' as const,
-  },
-  actions: {
-    display: 'flex',
-    gap: '8px',
-    justifyContent: 'flex-end',
-  },
-  saveButton: {
-    padding: '8px 20px',
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600' as const,
-  },
-  cancelButton: {
-    padding: '8px 20px',
-    backgroundColor: '#6b7280',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600' as const,
-  },
-};
-
-export default TimeoutPicker;
+}

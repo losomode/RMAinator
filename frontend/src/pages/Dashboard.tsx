@@ -1,30 +1,54 @@
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { rmaAPI } from '../services/api';
-import type { RMA, RMAState } from '../types';
+import { rmaApi } from '../api';
+import { STATE_COLORS } from '../types';
+import type { RMA } from '../types';
+import { useAuth } from '@inator/shared/auth/AuthProvider';
+import { companiesApi, type Company } from '@inator/shared/api/companies';
 
-type ViewMode = 'all' | 'individual' | 'byGroup';
+type ViewMode = 'all' | 'byGroup';
 
-const Dashboard = () => {
+/** User-facing RMA dashboard — shows all owned RMAs with optional group view. */
+export function Dashboard(): React.JSX.Element {
+  const { isAdmin } = useAuth();
   const [rmas, setRmas] = useState<RMA[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-  const [showArchived, setShowArchived] = useState<boolean>(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState<number | ''>('');
   const [viewMode, setViewMode] = useState<ViewMode>('all');
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadRMAs();
+    if (isAdmin) {
+      void loadCompanies();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived]);
+  }, []);
+
+  useEffect(() => {
+    void loadRMAs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showArchived, companyFilter]);
+
+  const loadCompanies = async (): Promise<void> => {
+    try {
+      const data = await companiesApi.list();
+      setCompanies(data);
+    } catch {
+      // Non-critical, just won't have company filter
+    }
+  };
 
   const loadRMAs = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await rmaAPI.list({ archived: showArchived });
-      const data = response.data;
-      setRmas(Array.isArray(data) ? data : data.results);
+      const params: Record<string, unknown> = { archived: showArchived };
+      if (companyFilter) params.company = companyFilter;
+      const data = await rmaApi.list(params);
+      setRmas(data);
     } catch {
       setError('Failed to load RMAs');
     } finally {
@@ -34,436 +58,201 @@ const Dashboard = () => {
 
   return (
     <>
-        <div style={styles.toolbar}>
-          <h2>My RMAs</h2>
-          <div style={styles.actions}>
-            <button 
-              onClick={() => setShowArchived(!showArchived)}
-              style={styles.filterBtn}
+      {/* Toolbar */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold text-gray-900">My RMAs</h2>
+        <div className="flex flex-wrap gap-3">
+          {isAdmin && companies.length > 0 && (
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value ? parseInt(e.target.value) : '')}
+              className="rounded-md border border-gray-300 bg-white px-5 py-2 text-sm text-gray-700"
             >
-              {showArchived ? 'Show Active' : 'Show Completed'}
-            </button>
-            <button 
-              onClick={() => navigate('/rma/new')}
-              style={styles.primaryBtn}
-            >
-              + New RMA
-            </button>
-          </div>
+              <option value="">All Companies</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="rounded-md border border-gray-300 bg-white px-5 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            {showArchived ? 'Show Active' : 'Show Completed'}
+          </button>
+          <button
+            onClick={() => navigate('/new')}
+            className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + New RMA
+          </button>
         </div>
+      </div>
 
-        {/* View Mode Toggle */}
-        <div style={styles.viewModeContainer}>
-          <span style={styles.viewModeLabel}>View:</span>
-          <div style={styles.viewModeButtons}>
+      {/* View mode toggle */}
+      <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg bg-white p-5 shadow-sm">
+        <span className="text-sm font-semibold text-gray-900">View:</span>
+        <div className="flex gap-3">
+          {(['all', 'byGroup'] as const).map((mode) => (
             <button
-              onClick={() => setViewMode('all')}
-              style={{
-                ...styles.viewModeBtn,
-                ...(viewMode === 'all' ? styles.viewModeBtnActive : {})
-              }}
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`rounded-md border px-4 py-2 text-sm transition-colors ${
+                viewMode === mode
+                  ? 'border-blue-600 bg-blue-600 font-medium text-white'
+                  : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              All RMAs
+              {mode === 'all' ? 'All RMAs' : 'By RMA Group'}
             </button>
-            <button
-              onClick={() => setViewMode('byGroup')}
-              style={{
-                ...styles.viewModeBtn,
-                ...(viewMode === 'byGroup' ? styles.viewModeBtnActive : {})
-              }}
-            >
-              By RMA Group
-            </button>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {error && <div style={styles.error}>{error}</div>}
+      {error && <div className="mb-5 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-        {loading ? (
-          <div style={styles.loading}>Loading...</div>
-        ) : rmas.length === 0 ? (
-          <div style={styles.empty}>
-            <p>No RMAs found</p>
-            {!showArchived && (
-              <button 
-                onClick={() => navigate('/rma/new')}
-                style={styles.primaryBtn}
-              >
-                Create your first RMA
-              </button>
-            )}
-          </div>
-        ) : (
-          <RMAView rmas={rmas} viewMode={viewMode} />
-        )}
+      {loading ? (
+        <div className="py-10 text-center text-gray-500">Loading...</div>
+      ) : rmas.length === 0 ? (
+        <div className="rounded-lg bg-white p-16 text-center shadow-sm">
+          <p className="text-gray-500">No RMAs found</p>
+          {!showArchived && (
+            <button
+              onClick={() => navigate('/new')}
+              className="mt-4 rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Create your first RMA
+            </button>
+          )}
+        </div>
+      ) : (
+        <RMAView rmas={rmas} viewMode={viewMode} />
+      )}
     </>
   );
-};
+}
 
-interface RMAViewProps { rmas: RMA[]; viewMode: ViewMode; }
-
-const RMAView = ({ rmas, viewMode }: RMAViewProps) => {
+function RMAView({ rmas, viewMode }: { rmas: RMA[]; viewMode: ViewMode }): React.JSX.Element {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (groupId: string): void => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }));
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: prev[groupId] === false }));
   };
 
-  // Filter based on view mode
-  let displayRmas = rmas;
-  if (viewMode === 'individual') {
-    // Show only RMAs without a group
-    displayRmas = rmas.filter(rma => !rma.group_id);
-  }
-
   if (viewMode === 'byGroup') {
-    // Group RMAs by group_id
     const grouped: Record<number, RMA[]> = {};
     const ungrouped: RMA[] = [];
-    
-    displayRmas.forEach(rma => {
+
+    rmas.forEach((rma) => {
       if (rma.group_id) {
-        if (!grouped[rma.group_id]) {
-          grouped[rma.group_id] = [];
-        }
-        grouped[rma.group_id].push(rma);
+        if (!grouped[rma.group_id]) grouped[rma.group_id] = [];
+        grouped[rma.group_id]!.push(rma);
       } else {
         ungrouped.push(rma);
       }
     });
 
     return (
-      <div style={{ width: '100%' }}>
-        {/* Display groups */}
+      <div>
         {Object.entries(grouped).map(([groupId, groupRmas]) => {
-          const isExpanded = expandedGroups[groupId] !== false; // Default to expanded
-          
+          const isExpanded = expandedGroups[groupId] !== false;
           return (
-            <div key={`group-${groupId}`} style={styles.groupContainer}>
-              <div style={styles.groupHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button
-                    onClick={() => toggleGroup(groupId)}
-                    style={styles.toggleBtn}
-                    aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
-                  >
-                    {isExpanded ? '▼' : '▶'}
-                  </button>
-                  <h3 style={styles.groupTitle}>
-                    📦 RMA Group #{groupId}
-                    <span style={styles.groupCount}>({groupRmas.length} devices)</span>
-                  </h3>
-                </div>
+            <div key={`group-${groupId}`} className="mb-12">
+              <div className="mb-5 flex items-center gap-3 rounded-lg border-l-4 border-blue-600 bg-gray-50 p-5">
+                <button
+                  onClick={() => toggleGroup(groupId)}
+                  className="rounded border border-gray-300 px-3 py-1 text-sm font-bold text-blue-600"
+                  aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+                >
+                  {isExpanded ? '▼' : '▶'}
+                </button>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  📦 RMA Group #{groupId}
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({groupRmas.length} devices)
+                  </span>
+                </h3>
               </div>
-              {isExpanded && (
-                <div style={styles.grid}>
-                  {groupRmas.map((rma) => (
-                    <RMACard key={rma.id} rma={rma} />
-                  ))}
-                </div>
-              )}
+              {isExpanded && <RMAGrid rmas={groupRmas} />}
             </div>
           );
         })}
-        
-        {/* Display ungrouped RMAs */}
+
         {ungrouped.length > 0 && (
-          <div style={{ ...styles.groupContainer, marginTop: Object.keys(grouped).length > 0 ? '0' : '0', marginBottom: '24px' }}>
-            <h3 style={{ ...styles.groupTitle, marginBottom: '20px' }}>Individual RMAs</h3>
-            <div style={styles.grid}>
-              {ungrouped.map((rma) => (
-                <RMACard key={rma.id} rma={rma} />
-              ))}
-            </div>
+          <div className="mb-6">
+            <h3 className="mb-5 text-lg font-semibold text-gray-900">Individual RMAs</h3>
+            <RMAGrid rmas={ungrouped} />
           </div>
         )}
       </div>
     );
   }
 
-  // Default: show all in grid
+  return <RMAGrid rmas={rmas} />;
+}
+
+function RMAGrid({ rmas }: { rmas: RMA[] }): React.JSX.Element {
   return (
-    <div style={styles.grid}>
-      {displayRmas.map((rma) => (
+    <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(280px,1fr))] items-start gap-6">
+      {rmas.map((rma) => (
         <RMACard key={rma.id} rma={rma} />
       ))}
     </div>
   );
-};
+}
 
-interface RMACardProps { rma: RMA; }
-
-const RMACard = ({ rma }: RMACardProps) => {
+function RMACard({ rma }: { rma: RMA }): React.JSX.Element {
   const navigate = useNavigate();
-  
-  const getStateColor = (state: RMAState): string => {
-    const colors = {
-      SUBMITTED: '#ffa500',
-      APPROVED: '#28a745',
-      REJECTED: '#dc3545',
-      RECEIVED: '#17a2b8',
-      DIAGNOSED: '#6c757d',
-      REPAIRED: '#007bff',
-      REPLACED: '#007bff',
-      SHIPPED: '#28a745',
-      COMPLETED: '#6c757d',
-    };
-    return colors[state] || '#6c757d';
-  };
+  const { isAdmin } = useAuth();
 
   return (
-    <div 
-      style={styles.card}
-      onClick={() => navigate(`/rma/${rma.id}`)}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    <div
+      onClick={() => navigate(`/${String(rma.id)}`)}
+      className="cursor-pointer rounded-lg bg-white p-5 shadow transition-shadow hover:shadow-lg"
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') navigate(`/${String(rma.id)}`);
       }}
     >
-      <div style={styles.cardHeader}>
-        <span style={styles.rmaNumber}>RMA #{rma.rma_number}</span>
-        <span 
-          style={{
-            ...styles.badge,
-            backgroundColor: getStateColor(rma.state),
-          }}
+      <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-3">
+        <span className="text-base font-bold text-gray-900">RMA #{rma.rma_number}</span>
+        <span
+          className="rounded-full px-3 py-1 text-xs font-medium text-white"
+          style={{ backgroundColor: STATE_COLORS[rma.state] }}
         >
           {rma.state}
         </span>
       </div>
-      <div style={styles.cardBody}>
+      <div className="flex flex-col gap-2 text-sm text-gray-600">
         {rma.group_id && (
-          <div style={styles.cardRow}>
-            <span style={styles.groupBadge}>
-              📦 Group #{rma.group_id}
-            </span>
-          </div>
+          <span className="inline-block w-fit rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+            📦 Group #{rma.group_id}
+          </span>
         )}
-        <div style={styles.cardRow}>
+        {isAdmin && rma.company_name && (
+          <span className="inline-block w-fit rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+            🏢 {rma.company_name}
+          </span>
+        )}
+        <div>
           <strong>Serial:</strong> {rma.serial_number}
         </div>
-        <div style={styles.cardRow}>
+        <div>
           <strong>Priority:</strong> {rma.priority}
         </div>
-        <div style={styles.cardRow}>
+        <div>
           <strong>Created:</strong> {new Date(rma.created_at).toLocaleDateString()}
         </div>
         {rma.is_archived && (
-          <div style={styles.cardRow}>
-            <strong>
-              {rma.state === 'COMPLETED' ? 'Completed:' : 'Closed:'}
-            </strong>{' '}
+          <div>
+            <strong>{rma.state === 'COMPLETED' ? 'Completed:' : 'Closed:'}</strong>{' '}
             {new Date(rma.updated_at).toLocaleDateString()}
           </div>
         )}
       </div>
     </div>
   );
-};
-
-const styles: Record<string, CSSProperties> = {
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-    flexWrap: 'wrap',
-    gap: '15px',
-  },
-  actions: {
-    display: 'flex',
-    gap: '10px',
-    flexWrap: 'wrap',
-  },
-  filterBtn: {
-    padding: '10px 20px',
-    backgroundColor: 'white',
-    color: '#333',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  primaryBtn: {
-    padding: '10px 20px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  error: {
-    backgroundColor: '#fee',
-    color: '#c33',
-    padding: '12px',
-    borderRadius: '4px',
-    marginBottom: '20px',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '40px',
-    color: '#666',
-  },
-  empty: {
-    textAlign: 'center',
-    padding: '60px 40px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '24px',
-    width: '100%',
-    alignItems: 'start',
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
-    paddingBottom: '12px',
-    borderBottom: '1px solid #eee',
-  },
-  rmaNumber: {
-    fontSize: '16px',
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  badge: {
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    color: 'white',
-    fontWeight: '500',
-  },
-  cardBody: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  cardRow: {
-    fontSize: '14px',
-    color: '#666',
-  },
-  groupBadge: {
-    display: 'inline-block',
-    padding: '4px 10px',
-    backgroundColor: '#e3f2fd',
-    color: '#1976d2',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: '500',
-  },
-  viewModeContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
-    marginBottom: '32px',
-    padding: '18px 24px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    flexWrap: 'wrap',
-  },
-  viewModeLabel: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#333',
-  },
-  viewModeButtons: {
-    display: 'flex',
-    gap: '10px',
-  },
-  viewModeBtn: {
-    padding: '8px 16px',
-    backgroundColor: 'white',
-    color: '#666',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'all 0.2s',
-  },
-  viewModeBtnActive: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    borderColor: '#007bff',
-    fontWeight: '500',
-  },
-  groupContainer: {
-    marginBottom: '48px',
-    width: '100%',
-  },
-  groupHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-    padding: '18px 24px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
-    borderLeft: '4px solid #007bff',
-  },
-  groupTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#333',
-    margin: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  groupCount: {
-    fontSize: '14px',
-    fontWeight: '400',
-    color: '#666',
-  },
-  viewGroupBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  toggleBtn: {
-    padding: '8px 12px',
-    backgroundColor: 'transparent',
-    color: '#007bff',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    transition: 'all 0.2s',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: '36px',
-  },
-};
-
-export default Dashboard;
+}

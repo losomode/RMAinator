@@ -1,9 +1,3 @@
-/** Shared domain types for RMAinator frontend. */
-
-// -----------------------------------------------------------------------------
-// Enums / Union Types
-// -----------------------------------------------------------------------------
-
 /** All possible RMA workflow states. */
 export type RMAState =
   | 'SUBMITTED'
@@ -18,25 +12,6 @@ export type RMAState =
 
 /** RMA priority levels. */
 export type RMAPriority = 'LOW' | 'NORMAL' | 'HIGH';
-
-/** User roles within the application (must match Authinator backend). */
-export type UserRole = 'ADMIN' | 'USER';
-
-// -----------------------------------------------------------------------------
-// Core Domain Models
-// -----------------------------------------------------------------------------
-
-/** Authenticated user profile. */
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: UserRole;
-  date_joined: string;
-  is_verified?: boolean;
-}
 
 /** File attached to an RMA. */
 export interface RMAAttachment {
@@ -63,6 +38,8 @@ export interface RMA {
   state: RMAState;
   priority: RMAPriority;
   group_id: number | null;
+  company_id: number | null;
+  company_name: string | null;
   fault_notes: string;
   first_ship_date: string | null;
   created_at: string;
@@ -74,9 +51,19 @@ export interface RMA {
   state_history?: RMAStateHistory[];
 }
 
-// -----------------------------------------------------------------------------
-// Admin Dashboard
-// -----------------------------------------------------------------------------
+/** A single device entry in the create-RMA form. */
+export interface RMADevice {
+  serial_number: string;
+  first_ship_date: string;
+  fault_notes: string;
+}
+
+/** Filters used on the Admin RMA Management page. */
+export interface RMAFilters {
+  state: RMAState | '';
+  priority: RMAPriority | '';
+  company: number | '';
+}
 
 /** Summary counters on the admin dashboard. */
 export interface AdminSummary {
@@ -124,59 +111,32 @@ export interface AdminDashboardMetrics {
   recent_activity: RecentActivity[];
 }
 
-// -----------------------------------------------------------------------------
-// Auth Context
-// -----------------------------------------------------------------------------
-
-/** Shape of the AuthContext value. */
-export interface AuthContextValue {
-  user: User | null;
-  login: () => void;
-  register: () => void;
-  logout: () => void;
-  setUserFromSSO: (userData: User) => void;
-  isAdmin: boolean;
-  loading: boolean;
+/** Stale-config timeout entry from the admin endpoint. */
+export interface StateTimeout {
+  id: number;
+  state: string;
+  state_display: string;
+  priority: string;
+  priority_display: string;
+  timeout_hours: number;
 }
 
-// -----------------------------------------------------------------------------
-// Forms
-// -----------------------------------------------------------------------------
+/** Colour map for RMA state badges. */
+export const STATE_COLORS: Record<RMAState, string> = {
+  SUBMITTED: '#ffa500',
+  APPROVED: '#28a745',
+  REJECTED: '#dc3545',
+  RECEIVED: '#17a2b8',
+  DIAGNOSED: '#6c757d',
+  REPAIRED: '#007bff',
+  REPLACED: '#007bff',
+  SHIPPED: '#28a745',
+  COMPLETED: '#6c757d',
+};
 
-/** A single device entry
-export interface RMADevice {
-  serial_number: string;
-  first_ship_date: string;
-  fault_notes: string;
-}
-
-/** Registration form data. */
-export interface RegisterFormData {
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  password: string;
-  password2: string;
-}
-
-// -----------------------------------------------------------------------------
-// API Filters
-// -----------------------------------------------------------------------------
-
-/** Filters used on the Admin RMA Management page. */
-export interface RMAFilters {
-  state: RMAState | '';
-  priority: RMAPriority | '';
-}
-
-// -----------------------------------------------------------------------------
-// Navigation
-// -----------------------------------------------------------------------------
-
-/** Sidebar navigation item. */
-export interface NavItem {
-  path: string;
-  label: string;
-  adminOnly?: boolean;
-}
+/** Colour map for RMA priority badges. */
+export const PRIORITY_COLORS: Record<RMAPriority, string> = {
+  LOW: '#28a745',
+  NORMAL: '#007bff',
+  HIGH: '#dc3545',
+};
