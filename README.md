@@ -488,8 +488,8 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 
-# Database (optional, SQLite default)
-DATABASE_URL=postgresql://user:pass@localhost/rmainator
+# Database (SQLite — set path for Docker volume persistence)
+SQLITE_PATH=/app/backend/data/db.sqlite3
 
 # File Storage (optional, local default)
 AWS_STORAGE_BUCKET_NAME=your-bucket
@@ -520,6 +520,49 @@ task backend:check-stale
 
 ## 🌐 Deployment
 
+### Docker Deployment (Recommended)
+
+RMAinator ships with a `Dockerfile` and is orchestrated by the [Inator Platform](https://github.com/losomode/inator) via Docker Compose.
+
+#### Development
+
+```bash
+# From the platform root (inator/)
+docker compose -f docker-compose.dev.yml up --build
+```
+
+SQLite data persists in the `rmainator_data` named volume at `/app/backend/data/db.sqlite3`.
+
+Useful commands inside the dev container:
+
+```bash
+# Migrations (run automatically on startup, but can be forced)
+docker compose -f docker-compose.dev.yml exec rmainator python backend/manage.py migrate
+
+# Create superuser
+docker compose -f docker-compose.dev.yml exec rmainator python backend/manage.py createsuperuser
+```
+
+#### Production
+
+```bash
+# 1. Create .env.prod from the example
+cp backend/.env.prod.example backend/.env.prod
+# Edit backend/.env.prod: set SECRET_KEY, ALLOWED_HOSTS, SMTP, etc.
+
+# 2. From the platform root — set domain/TLS vars
+export DEPLOY_DOMAIN=yourapp.com
+export CADDY_ACME_EMAIL=you@yourapp.com
+
+# 3. Build and start
+task docker:prod:build
+task docker:prod:up
+```
+
+In production, the **React frontend is compiled and baked into the Caddy image** (no frontend container). Caddy handles TLS automatically via Let’s Encrypt. Migrations run automatically on startup.
+
+See the platform [docker-compose.dev.yml](https://github.com/losomode/inator/blob/main/docker-compose.dev.yml) and [docker-compose.yml](https://github.com/losomode/inator/blob/main/docker-compose.yml) for the full configuration.
+
 ### Production Checklist
 
 - [ ] Set `DEBUG=False` in environment
@@ -527,14 +570,18 @@ task backend:check-stale
 - [ ] Set `ALLOWED_HOSTS` correctly
 - [ ] Configure Authinator connection
 - [ ] Set up SMTP email (not console backend)
-- [ ] Use PostgreSQL (not SQLite)
+- [ ] Configure SQLite path via `SQLITE_PATH` env var (default: `backend/db.sqlite3`)
 - [ ] Configure S3/compatible storage for files
 - [ ] Set up HTTPS/TLS
 - [ ] Run migrations: `task backend:migrate`
 - [ ] Collect static files: `task backend:collectstatic`
 - [ ] Configure cron for stale RMA checks
 
-### Nginx Configuration
+### Manual Deployment (without Docker)
+
+> The sections below describe running RMAinator manually without Docker. For new deployments, the Docker approach above is recommended.
+
+#### Nginx Configuration
 
 ```nginx
 server {
@@ -579,7 +626,7 @@ server {
 }
 ```
 
-### Systemd Service (Backend)
+#### Systemd Service (Backend)
 
 ```ini
 [Unit]
