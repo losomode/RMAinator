@@ -9,6 +9,7 @@ import { RMADetail } from './pages/RMADetail';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminRMAManagement } from './pages/AdminRMAManagement';
 import { AdminStaleConfig } from './pages/AdminStaleConfig';
+import { GroupDetail } from './pages/GroupDetail';
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: '📋 Dashboard' },
@@ -41,6 +42,16 @@ export default function App(): React.JSX.Element {
               <ProtectedRoute>
                 <Layout title="RMAinator" navItems={NAV_ITEMS}>
                   <CreateRMA />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/group/:id"
+            element={
+              <ProtectedRoute>
+                <Layout title="RMAinator" navItems={NAV_ITEMS}>
+                  <GroupDetail />
                 </Layout>
               </ProtectedRoute>
             }

@@ -8,20 +8,21 @@ from users.models import User
 # Counter for generating unique usernames
 _user_counter = 0
 
-def create_mock_user(is_admin=False, **kwargs):
+def create_mock_user(is_admin=False, company_id=None, **kwargs):
     """
     Create a test user (Django User model instance) for testing.
-    
+
     Args:
-        is_admin: If True, sets role to 'ADMIN'
+        is_admin: If True, sets role to 'ADMIN' (role_level=100)
+        company_id: Optional company ID to attach as company_id_remote
         **kwargs: Additional user attributes to override
-        
+
     Returns:
-        User model instance
+        User model instance with role_level and company_id_remote set
     """
     global _user_counter
     _user_counter += 1
-    
+
     defaults = {
         'user_id': None,  # Let Django auto-assign
         'username': f'testuser{_user_counter}',
@@ -29,32 +30,38 @@ def create_mock_user(is_admin=False, **kwargs):
         'role': 'ADMIN' if is_admin else 'USER',
     }
     defaults.update(kwargs)
-    
+
     # Remove user_id if present since we'll use Django's auto ID
-    user_id = defaults.pop('user_id', None)
-    
+    defaults.pop('user_id', None)
+
     # Extract non-User-model fields
     role = defaults.pop('role', 'USER')
     defaults.pop('customer_id', None)
     defaults.pop('customer_name', None)
     defaults.pop('is_verified', None)
     defaults.pop('is_active', None)
-    
+    defaults.pop('company_id', None)  # not a DB field
+
     # Create User model instance
-    # Note: Don't use get_or_create with explicit ID as it may cause conflicts
     user = User.objects.create(**defaults)
-    
-    # Mark admins with Django's is_staff flag
+
+    # Set permission-related instance attributes (not DB-persisted)
     if role == 'ADMIN':
         user.is_staff = True
         user.is_admin = True
-        user.save()
+        user.role_level = 100  # Used by IsAdmin permission class
+        user.save(update_fields=['is_staff'])
     else:
         user.is_admin = False
-    
+        user.role_level = 10  # Non-admin, non-zero so scoping logic still applies
+
+    # Attach company info (mirrors _attach_authinator_attrs in production)
+    user.company_id_remote = company_id
+    user.customer_id_remote = company_id
+
     # Store role as an attribute for test compatibility
     user._test_role = role
-    
+
     return user
 
 

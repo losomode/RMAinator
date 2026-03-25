@@ -1,37 +1,48 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone as _tz
 from datetime import date
 
 
 class RMAGroup(models.Model):
     """Model for grouping multiple RMAs submitted together."""
-    created_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=255, blank=True, help_text="Optional display name for this group")
+    company_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Company ID from USERinator"
+    )
+    return_shipping_address = models.TextField(blank=True, help_text="Address to ship repaired devices back to")
+    created_at = models.DateTimeField(default=_tz.now)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='rma_groups'
     )
-    
+
     @property
     def device_count(self):
         """Return the number of RMAs in this group."""
         return self.rmas.count()
-    
+
     @property
     def owner(self):
         """Alias for created_by for consistency with RMA model."""
         return self.created_by
-    
+
     def __str__(self):
+        if self.name:
+            return f"RMA Group {self.id} — {self.name}"
         return f"RMA Group {self.id} - {self.created_at.strftime('%Y-%m-%d')}"
-    
+
     class Meta:
         ordering = ['-created_at']
 
 
 class RMA(models.Model):
     """Main RMA model with all fields from specification."""
-    
+
     class State(models.TextChoices):
         SUBMITTED = 'SUBMITTED', 'Submitted'
         APPROVED = 'APPROVED', 'Approved'
@@ -40,6 +51,8 @@ class RMA(models.Model):
         DIAGNOSED = 'DIAGNOSED', 'Diagnosed'
         REPAIRED = 'REPAIRED', 'Repaired'
         REPLACED = 'REPLACED', 'Replaced'
+        IN_QA = 'IN_QA', 'In QA / Pre-Shipment Testing'
+        READY_FOR_RETURN = 'READY_FOR_RETURN', 'Ready for Return, Awaiting Shipment'
         SHIPPED = 'SHIPPED', 'Shipped'
         COMPLETED = 'COMPLETED', 'Completed'
     
@@ -83,26 +96,35 @@ class RMA(models.Model):
     
     # Device information (user-submitted)
     serial_number = models.CharField(max_length=100, db_index=True)
-    first_ship_date = models.DateField(null=True, blank=True)
-    fault_notes = models.TextField(help_text="Issue description and fault notes")
+    device_type = models.CharField(max_length=100, blank=True, help_text="e.g. TX2 Camera, Orin Node")
+    ipn = models.CharField(max_length=100, blank=True, help_text="Internal Part Number (optional)")
+    fault_notes = models.TextField(blank=True, help_text="Issue description and other comments")
     
+    # Dates (first_ship_date is admin-only but stored per device)
+    first_ship_date = models.DateField(null=True, blank=True)
+
     # RMA dates (system-managed)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     rma_received_date = models.DateField(null=True, blank=True)
     return_date = models.DateField(null=True, blank=True)
-    
+
     # Admin-only technical fields
     root_cause = models.TextField(blank=True)
-    parts_replaced = models.TextField(blank=True)
+    parts_replaced = models.JSONField(default=list, blank=True, help_text="List of parts replaced")
     cost_to_repair = models.CharField(max_length=100, blank=True)
-    tx2_mac = models.CharField(max_length=17, blank=True, help_text="MAC address in format XX:XX:XX:XX:XX:XX")
-    script_ran = models.BooleanField(default=False)
-    services_enabled = models.BooleanField(default=False)
-    uptime_good = models.BooleanField(default=False)
-    stream_good = models.BooleanField(default=False)
-    ship_ready = models.BooleanField(default=False)
-    
+    device_mac = models.CharField(max_length=17, blank=True, help_text="MAC address in format XX:XX:XX:XX:XX:XX")
+    return_tracking_number = models.CharField(max_length=200, blank=True)
+
+    # Repair QA Checklist (admin-only)
+    qa_reflashed = models.BooleanField(default=False)
+    qa_image_version = models.CharField(max_length=100, blank=True, help_text="Firmware/image version after re-flash")
+    qa_nvme_data_ok = models.BooleanField(default=False)
+    qa_services_ok = models.BooleanField(default=False)
+    qa_uptime_ok = models.BooleanField(default=False)
+    qa_stream_uptime_ok = models.BooleanField(default=False)
+    qa_lens_control_ok = models.BooleanField(default=False)
+
     # Rejection reason (if rejected)
     rejection_reason = models.TextField(blank=True)
     

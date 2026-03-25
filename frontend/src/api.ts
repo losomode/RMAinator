@@ -1,5 +1,5 @@
 import apiClient from '@inator/shared/api/client';
-import type { RMA, RMADevice, AdminDashboardMetrics, StateTimeout } from './types';
+import type { RMA, RMAGroup, RMADevice, AdminDashboardMetrics, StateTimeout } from './types';
 
 /** RMA CRUD and workflow endpoints. */
 export const rmaApi = {
@@ -49,12 +49,54 @@ export const rmaApi = {
   },
 
   createGroup: async (data: {
-    rmas: (Omit<RMADevice, 'first_ship_date'> & {
-      first_ship_date: string | null;
-      priority: string;
-    })[];
-  }): Promise<void> => {
-    await apiClient.post('/rma/group/', data);
+    name?: string;
+    company_id: number;
+    return_shipping_address?: string;
+    rmas: {
+      serial_number: string;
+      device_type: string;
+      ipn?: string;
+      fault_notes: string;
+      priority?: string;
+      company_id: number;
+    }[];
+  }): Promise<{ group: RMAGroup; rmas: RMA[] }> => {
+    const response = await apiClient.post<{ group: RMAGroup; rmas: RMA[] }>('/rma/group/', data);
+    return response.data;
+  },
+
+  getGroup: async (id: number | string): Promise<RMAGroup> => {
+    const response = await apiClient.get<RMAGroup>(`/rma/group/${String(id)}/`);
+    return response.data;
+  },
+
+  updateGroup: async (
+    id: number | string,
+    data: { name?: string; return_shipping_address?: string; created_at?: string; also_update_rmas?: boolean },
+  ): Promise<RMAGroup> => {
+    const response = await apiClient.patch<RMAGroup>(`/rma/group/${String(id)}/`, data);
+    return response.data;
+  },
+
+  deleteGroup: async (id: number | string): Promise<void> => {
+    await apiClient.delete(`/rma/group/${String(id)}/`);
+  },
+
+  bulkGroupState: async (
+    id: number | string,
+    state: string,
+    trackingNumber?: string,
+    rmaIds?: number[],
+  ): Promise<{ message: string; group: RMAGroup }> => {
+    const response = await apiClient.post<{ message: string; group: RMAGroup }>(
+      `/rma/group/${String(id)}/bulk-state/`,
+      {
+        state,
+        ...(trackingNumber ? { tracking_number: trackingNumber } : {}),
+        ...(rmaIds?.length ? { rma_ids: rmaIds } : {}),
+      },
+    );
+    return response.data;
   },
 
   search: async (params: Record<string, string | number>): Promise<RMA[]> => {

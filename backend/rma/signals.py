@@ -28,11 +28,12 @@ def track_rma_changes(sender, instance, **kwargs):
             
             # List of fields to audit
             audited_fields = [
-                'state', 'priority', 'serial_number', 'first_ship_date',
-                'fault_notes', 'rma_received_date', 'return_date',
-                'root_cause', 'parts_replaced', 'cost_to_repair', 'tx2_mac',
-                'script_ran', 'services_enabled', 'uptime_good', 'stream_good',
-                'ship_ready', 'rejection_reason'
+                'state', 'priority', 'serial_number', 'device_type', 'ipn',
+                'first_ship_date', 'fault_notes', 'rma_received_date', 'return_date',
+                'root_cause', 'parts_replaced', 'cost_to_repair', 'device_mac',
+                'return_tracking_number', 'rejection_reason',
+                'qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok',
+                'qa_services_ok', 'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok',
             ]
             
             for field in audited_fields:

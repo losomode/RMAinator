@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { rmaApi } from '../api';
-import { STATE_COLORS } from '../types';
-import type { AdminDashboardMetrics } from '../types';
+import { STATE_COLORS, STATE_LABELS } from '../types';
+import type { AdminDashboardMetrics, RMAState } from '../types';
 import { AdminToolsNav } from '../components/AdminToolsNav';
 
 /** Admin dashboard with summary metrics, trends, stale RMAs, and recent activity. */
@@ -43,7 +43,7 @@ export function AdminDashboard(): React.JSX.Element {
             <MetricCard title="Total RMAs" value={metrics.summary.total_rmas} color="#007bff" />
             <MetricCard title="Active RMAs" value={metrics.summary.active_rmas} color="#28a745" />
             <MetricCard
-              title="Archived RMAs"
+              title="Finished RMAs"
               value={metrics.summary.archived_rmas}
               color="#6c757d"
             />
@@ -66,7 +66,7 @@ export function AdminDashboard(): React.JSX.Element {
                         STATE_COLORS[state as keyof typeof STATE_COLORS] ?? '#6c757d',
                     }}
                   >
-                    {state}
+                    {STATE_LABELS[state as RMAState] ?? state}
                   </span>
                   <div className="text-2xl font-bold text-gray-900">{count}</div>
                 </div>
@@ -119,8 +119,10 @@ export function AdminDashboard(): React.JSX.Element {
                   >
                     <span className="font-bold text-blue-600">RMA #{rma.rma_number}</span>
                     <span>{rma.serial_number}</span>
-                    <span className="rounded bg-gray-500 px-2 py-1 text-center text-xs text-white">
-                      {rma.state}
+                    <span className="rounded px-2 py-1 text-center text-xs text-white"
+                      style={{ backgroundColor: STATE_COLORS[rma.state] ?? '#6c757d' }}
+                    >
+                      {STATE_LABELS[rma.state] ?? rma.state}
                     </span>
                     <span className="rounded bg-red-500 px-2 py-1 text-center text-xs text-white">
                       {rma.days_in_state} days
@@ -140,7 +142,9 @@ export function AdminDashboard(): React.JSX.Element {
                   <div className="mb-1 flex gap-4">
                     <span className="font-bold text-blue-600">RMA #{activity.rma_number}</span>
                     <span className="text-gray-500">
-                      {activity.from_state ?? 'NEW'} → {activity.to_state}
+                      {activity.from_state ? (STATE_LABELS[activity.from_state] ?? activity.from_state) : 'New'}
+                      {' → '}
+                      {STATE_LABELS[activity.to_state] ?? activity.to_state}
                     </span>
                   </div>
                   <div className="flex gap-4 text-xs text-gray-400">

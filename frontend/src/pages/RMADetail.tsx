@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@inator/shared/auth/AuthProvider';
 import { rmaApi } from '../api';
-import { STATE_COLORS, PRIORITY_COLORS } from '../types';
+import { STATE_COLORS, STATE_LABELS, PRIORITY_COLORS } from '../types';
 import type { RMA, RMAState } from '../types';
 
 const VALID_TRANSITIONS: Record<string, RMAState[]> = {
@@ -10,8 +10,10 @@ const VALID_TRANSITIONS: Record<string, RMAState[]> = {
   APPROVED: ['RECEIVED'],
   RECEIVED: ['DIAGNOSED'],
   DIAGNOSED: ['REPAIRED', 'REPLACED'],
-  REPAIRED: ['SHIPPED'],
-  REPLACED: ['SHIPPED'],
+  REPAIRED: ['IN_QA'],
+  REPLACED: ['IN_QA'],
+  IN_QA: ['READY_FOR_RETURN'],
+  READY_FOR_RETURN: ['SHIPPED'],
   SHIPPED: ['COMPLETED'],
 };
 
@@ -24,7 +26,9 @@ const STATE_ORDER: Record<string, number> = {
   DIAGNOSED: 3,
   REPAIRED: 4,
   REPLACED: 4,
-  SHIPPED: 5,
+  IN_QA: 5,
+  READY_FOR_RETURN: 6,
+  SHIPPED: 7,
 };
 
 const REVERTABLE_FROM: RMAState[] = [
@@ -33,6 +37,8 @@ const REVERTABLE_FROM: RMAState[] = [
   'DIAGNOSED',
   'REPAIRED',
   'REPLACED',
+  'IN_QA',
+  'READY_FOR_RETURN',
   'SHIPPED',
 ];
 
@@ -50,19 +56,23 @@ export function RMADetail(): React.JSX.Element {
   const [stateError, setStateError] = useState('');
   const [revertState, setRevertState] = useState<RMAState | ''>('');
   const [editingFields, setEditingFields] = useState(false);
-  const [adminFields, setAdminFields] = useState<Record<string, string | boolean>>({
+  const [adminFields, setAdminFields] = useState<Record<string, string | boolean | string[]>>({
     priority: '',
     root_cause: '',
-    parts_replaced: '',
+    parts_replaced: ['', ''],
     cost_to_repair: '',
-    tx2_mac: '',
+    device_mac: '',
+    return_tracking_number: '',
+    first_ship_date: '',
     rma_received_date: '',
     return_date: '',
-    script_ran: false,
-    services_enabled: false,
-    uptime_good: false,
-    stream_good: false,
-    ship_ready: false,
+    qa_reflashed: false,
+    qa_image_version: '',
+    qa_nvme_data_ok: false,
+    qa_services_ok: false,
+    qa_uptime_ok: false,
+    qa_stream_uptime_ok: false,
+    qa_lens_control_ok: false,
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -87,20 +97,26 @@ export function RMADetail(): React.JSX.Element {
   };
 
   const populateAdminFields = (data: RMA): void => {
-    const raw = data as unknown as Record<string, unknown>;
+    const partsRaw = data.parts_replaced;
+    const partsList: string[] =
+      Array.isArray(partsRaw) && partsRaw.length > 0 ? [...partsRaw, ''] : ['', ''];
     setAdminFields({
       priority: data.priority || 'NORMAL',
-      root_cause: (raw.root_cause as string) || '',
-      parts_replaced: (raw.parts_replaced as string) || '',
-      cost_to_repair: (raw.cost_to_repair as string) || '',
-      tx2_mac: (raw.tx2_mac as string) || '',
-      rma_received_date: (raw.rma_received_date as string) || '',
-      return_date: (raw.return_date as string) || '',
-      script_ran: !!raw.script_ran,
-      services_enabled: !!raw.services_enabled,
-      uptime_good: !!raw.uptime_good,
-      stream_good: !!raw.stream_good,
-      ship_ready: !!raw.ship_ready,
+      root_cause: data.root_cause ?? '',
+      parts_replaced: partsList,
+      cost_to_repair: data.cost_to_repair ?? '',
+      device_mac: data.device_mac ?? '',
+      return_tracking_number: data.return_tracking_number ?? '',
+      first_ship_date: data.first_ship_date ?? '',
+      rma_received_date: data.rma_received_date ?? '',
+      return_date: data.return_date ?? '',
+      qa_reflashed: data.qa_reflashed ?? false,
+      qa_image_version: data.qa_image_version ?? '',
+      qa_nvme_data_ok: data.qa_nvme_data_ok ?? false,
+      qa_services_ok: data.qa_services_ok ?? false,
+      qa_uptime_ok: data.qa_uptime_ok ?? false,
+      qa_stream_uptime_ok: data.qa_stream_uptime_ok ?? false,
+      qa_lens_control_ok: data.qa_lens_control_ok ?? false,
     });
   };
 
@@ -148,9 +164,14 @@ export function RMADetail(): React.JSX.Element {
     setSaveError('');
     setSaveSuccess('');
     try {
-      const payload: Record<string, string | boolean | null> = { ...adminFields };
-      for (const field of ['rma_received_date', 'return_date']) {
+      const payload: Record<string, string | boolean | null | string[]> = { ...adminFields };
+      // Null out empty date fields
+      for (const field of ['rma_received_date', 'return_date', 'first_ship_date']) {
         if (payload[field] === '') payload[field] = null;
+      }
+      // Trim empty parts_replaced entries
+      if (Array.isArray(payload.parts_replaced)) {
+        payload.parts_replaced = (payload.parts_replaced as string[]).filter((p) => p.trim() !== '');
       }
       const data = await rmaApi.update(id!, payload as unknown as Partial<RMA>);
       setRma((prev) => (prev ? { ...prev, ...data } : prev));
@@ -218,10 +239,10 @@ export function RMADetail(): React.JSX.Element {
           )}
         </div>
         <span
-          className="rounded-full px-6 py-2 text-base font-semibold uppercase text-white"
+          className="rounded-full px-6 py-2 text-base font-semibold text-white"
           style={{ backgroundColor: STATE_COLORS[rma.state] }}
         >
-          {rma.state}
+          {STATE_LABELS[rma.state]}
         </span>
       </div>
 
@@ -297,10 +318,6 @@ function DeviceInfo({
           </span>
         }
       />
-      <DetailRow
-        label="First Ship Date"
-        value={rma.first_ship_date ? new Date(rma.first_ship_date).toLocaleDateString() : 'N/A'}
-      />
       <DetailRow label="Created" value={formatDate(rma.created_at)} />
       {rma.is_archived && (
         <DetailRow
@@ -330,15 +347,20 @@ function DeviceInfo({
           <span className="text-sm font-semibold text-gray-500">Attachments:</span>
           <div className="mt-2 flex flex-col gap-2">
             {rma.attachments.map((attachment) => (
-              <div
+              <a
                 key={attachment.id}
-                className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-900"
+                href={attachment.file}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-blue-700 hover:bg-gray-100"
               >
                 📎 {attachment.filename}
-                <span className="ml-2 text-xs text-gray-400">
+                <span className="ml-1 text-xs text-gray-400">
                   ({(attachment.file_size / 1024).toFixed(1)} KB)
                 </span>
-              </div>
+                <span className="ml-auto text-xs text-gray-400">↓ download</span>
+              </a>
             ))}
           </div>
         </div>
@@ -422,7 +444,7 @@ function StateControls({
               }`}
               data-testid={`transition-${nextState.toLowerCase()}`}
             >
-              {transitioning ? 'Updating...' : `→ ${nextState}`}
+              {transitioning ? 'Updating…' : `→ ${STATE_LABELS[nextState] ?? nextState}`}
             </button>
           ))}
         </div>
@@ -450,7 +472,7 @@ function StateControls({
                   <option value="">Select state...</option>
                   {revertOptions.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {STATE_LABELS[s] ?? s}
                     </option>
                   ))}
                 </select>
@@ -486,16 +508,33 @@ function AdminFieldsSection({
   onSave,
   onCancel,
 }: {
-  adminFields: Record<string, string | boolean>;
+  adminFields: Record<string, string | boolean | string[]>;
   editingFields: boolean;
   saving: boolean;
   saveError: string;
   saveSuccess: string;
-  onFieldChange: (field: string, value: string | boolean) => void;
+  onFieldChange: (field: string, value: string | boolean | string[]) => void;
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
 }): React.JSX.Element {
+  const parts = adminFields.parts_replaced as string[];
+
+  const updatePart = (idx: number, val: string): void => {
+    const updated = [...parts];
+    updated[idx] = val;
+    onFieldChange('parts_replaced', updated);
+  };
+
+  const addPart = (): void => {
+    onFieldChange('parts_replaced', [...parts, '']);
+  };
+
+  const removePart = (idx: number): void => {
+    if (parts.length <= 1) return;
+    onFieldChange('parts_replaced', parts.filter((_, i) => i !== idx));
+  };
+
   return (
     <div className="rounded-lg bg-white p-8 shadow">
       <div className="mb-4 flex items-center justify-between">
@@ -537,6 +576,7 @@ function AdminFieldsSection({
         </div>
       )}
 
+      {/* Grid fields */}
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <AdminField
           label="Priority"
@@ -546,6 +586,14 @@ function AdminFieldsSection({
           disabled={!editingFields}
           options={['LOW', 'NORMAL', 'HIGH']}
           testId="admin-priority"
+        />
+        <AdminField
+          label="First Ship Date"
+          type="date"
+          value={adminFields.first_ship_date as string}
+          onChange={(v) => onFieldChange('first_ship_date', v)}
+          disabled={!editingFields}
+          testId="admin-first-ship-date"
         />
         <AdminField
           label="RMA Received Date"
@@ -572,15 +620,24 @@ function AdminFieldsSection({
           testId="admin-cost-to-repair"
         />
         <AdminField
-          label="TX2 MAC"
+          label="Device MAC"
           type="text"
-          value={adminFields.tx2_mac as string}
-          onChange={(v) => onFieldChange('tx2_mac', v)}
+          value={adminFields.device_mac as string}
+          onChange={(v) => onFieldChange('device_mac', v)}
           disabled={!editingFields}
-          testId="admin-tx2-mac"
+          testId="admin-device-mac"
+        />
+        <AdminField
+          label="Return Tracking Number"
+          type="text"
+          value={adminFields.return_tracking_number as string}
+          onChange={(v) => onFieldChange('return_tracking_number', v)}
+          disabled={!editingFields}
+          testId="admin-return-tracking-number"
         />
       </div>
 
+      {/* Root Cause */}
       <div className="mb-4">
         <label className="mb-1 block text-sm font-semibold text-gray-600">Root Cause:</label>
         <textarea
@@ -592,45 +649,143 @@ function AdminFieldsSection({
         />
       </div>
 
-      <div className="mb-4">
-        <label className="mb-1 block text-sm font-semibold text-gray-600">
-          Parts Replaced:
-        </label>
-        <textarea
-          value={adminFields.parts_replaced as string}
-          onChange={(e) => onFieldChange('parts_replaced', e.target.value)}
-          disabled={!editingFields}
-          className="w-full rounded-md border border-gray-300 p-2 text-sm"
-          data-testid="admin-parts-replaced"
-        />
+      {/* Parts Replaced — dynamic list */}
+      <div className="mb-6">
+        <label className="mb-2 block text-sm font-semibold text-gray-600">Parts Replaced:</label>
+        <div className="flex flex-col gap-2">
+          {parts.map((part, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={part}
+                onChange={(e) => updatePart(idx, e.target.value)}
+                disabled={!editingFields}
+                className="flex-1 rounded-md border border-gray-300 p-2 text-sm"
+                placeholder={`Part ${String(idx + 1)}`}
+                data-testid={`admin-part-${String(idx)}`}
+              />
+              {editingFields && parts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removePart(idx)}
+                  className="rounded bg-red-400 px-2 py-1 text-xs text-white hover:bg-red-500"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {editingFields && (
+          <button
+            type="button"
+            onClick={addPart}
+            className="mt-2 rounded-md border border-dashed border-blue-400 px-3 py-1 text-xs text-blue-600 hover:bg-blue-50"
+            data-testid="admin-add-part"
+          >
+            + Add part
+          </button>
+        )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {(
-          [
-            'script_ran',
-            'services_enabled',
-            'uptime_good',
-            'stream_good',
-            'ship_ready',
-          ] as const
-        ).map((field) => (
-          <label
-            key={field}
-            className="flex cursor-pointer items-center gap-2 text-sm text-gray-900"
-          >
+      {/* Repair QA Checklist */}
+      <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+        <h3 className="mb-4 text-sm font-bold text-gray-700">Repair QA Checklist</h3>
+        <div className="flex flex-col gap-3">
+          {/* Re-flashed + image version */}
+          <div className="flex flex-col gap-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-900">
+              <input
+                type="checkbox"
+                checked={adminFields.qa_reflashed as boolean}
+                onChange={(e) => onFieldChange('qa_reflashed', e.target.checked)}
+                disabled={!editingFields}
+                data-testid="admin-qa-reflashed"
+              />
+              Re-flashed
+            </label>
             <input
-              type="checkbox"
-              checked={adminFields[field] as boolean}
-              onChange={(e) => onFieldChange(field, e.target.checked)}
-              disabled={!editingFields}
-              data-testid={`admin-${field.replace(/_/g, '-')}`}
+              type="text"
+              value={adminFields.qa_image_version as string}
+              onChange={(e) => onFieldChange('qa_image_version', e.target.value)}
+              disabled={!editingFields || !(adminFields.qa_reflashed as boolean)}
+              className="ml-6 w-48 rounded-md border border-gray-300 p-1.5 text-xs disabled:bg-gray-100 disabled:text-gray-400"
+              placeholder="Image version"
+              data-testid="admin-qa-image-version"
             />
-            {field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-          </label>
-        ))}
+          </div>
+
+          <QACheckItem
+            label="/data partition on NVMe"
+            helper="(if applicable)"
+            field="qa_nvme_data_ok"
+            checked={adminFields.qa_nvme_data_ok as boolean}
+            disabled={!editingFields}
+            onFieldChange={onFieldChange}
+          />
+          <QACheckItem
+            label="Services Installed & Enabled"
+            field="qa_services_ok"
+            checked={adminFields.qa_services_ok as boolean}
+            disabled={!editingFields}
+            onFieldChange={onFieldChange}
+          />
+          <QACheckItem
+            label="Uptime >24 Hours"
+            field="qa_uptime_ok"
+            checked={adminFields.qa_uptime_ok as boolean}
+            disabled={!editingFields}
+            onFieldChange={onFieldChange}
+          />
+          <QACheckItem
+            label="Stream Uptime >24 Hours"
+            helper="(if applicable)"
+            field="qa_stream_uptime_ok"
+            checked={adminFields.qa_stream_uptime_ok as boolean}
+            disabled={!editingFields}
+            onFieldChange={onFieldChange}
+          />
+          <QACheckItem
+            label="Lens Control Verified"
+            helper="(if applicable)"
+            field="qa_lens_control_ok"
+            checked={adminFields.qa_lens_control_ok as boolean}
+            disabled={!editingFields}
+            onFieldChange={onFieldChange}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+function QACheckItem({
+  label,
+  helper,
+  field,
+  checked,
+  disabled,
+  onFieldChange,
+}: {
+  label: string;
+  helper?: string;
+  field: string;
+  checked: boolean;
+  disabled: boolean;
+  onFieldChange: (field: string, value: string | boolean | string[]) => void;
+}): React.JSX.Element {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-900">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onFieldChange(field, e.target.checked)}
+        disabled={disabled}
+        data-testid={`admin-${field.replace(/_/g, '-')}`}
+      />
+      {label}
+      {helper && <span className="text-xs text-gray-400">{helper}</span>}
+    </label>
   );
 }
 
@@ -661,7 +816,7 @@ function StateHistory({
                     className="text-base font-semibold"
                     style={{ color: STATE_COLORS[history.to_state] }}
                   >
-                    {history.to_state}
+                    {STATE_LABELS[history.to_state]}
                   </span>
                   <span className="text-xs text-gray-400">
                     {formatDate(history.changed_at)}

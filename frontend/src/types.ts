@@ -7,6 +7,8 @@ export type RMAState =
   | 'DIAGNOSED'
   | 'REPAIRED'
   | 'REPLACED'
+  | 'IN_QA'
+  | 'READY_FOR_RETURN'
   | 'SHIPPED'
   | 'COMPLETED';
 
@@ -16,6 +18,7 @@ export type RMAPriority = 'LOW' | 'NORMAL' | 'HIGH';
 /** File attached to an RMA. */
 export interface RMAAttachment {
   id: number;
+  file?: string;  // Absolute URL to the file (from Django FileField)
   filename: string;
   file_size: number;
 }
@@ -35,9 +38,14 @@ export interface RMA {
   id: number;
   rma_number: string;
   serial_number: string;
+  device_type: string;
+  ipn: string;
   state: RMAState;
   priority: RMAPriority;
   group_id: number | null;
+  group_name: string | null;
+  group_created_at: string | null;
+  latest_note: string | null;
   company_id: number | null;
   company_name: string | null;
   fault_notes: string;
@@ -49,13 +57,42 @@ export interface RMA {
   owner?: { username: string };
   attachments?: RMAAttachment[];
   state_history?: RMAStateHistory[];
+  // Admin-only fields
+  root_cause?: string;
+  parts_replaced?: string[];
+  cost_to_repair?: string;
+  device_mac?: string;
+  return_tracking_number?: string;
+  rma_received_date?: string | null;
+  return_date?: string | null;
+  qa_reflashed?: boolean;
+  qa_image_version?: string;
+  qa_nvme_data_ok?: boolean;
+  qa_services_ok?: boolean;
+  qa_uptime_ok?: boolean;
+  qa_stream_uptime_ok?: boolean;
+  qa_lens_control_ok?: boolean;
+}
+
+/** An RMA group as returned by the group detail API. */
+export interface RMAGroup {
+  id: number;
+  name: string;
+  company_id: number | null;
+  company_name: string | null;
+  return_shipping_address: string;
+  created_at: string;
+  device_count: number;
+  rmas: RMA[];
 }
 
 /** A single device entry in the create-RMA form. */
 export interface RMADevice {
   serial_number: string;
-  first_ship_date: string;
+  device_type: string;
+  ipn: string;
   fault_notes: string;
+  files?: File[];
 }
 
 /** Filters used on the Admin RMA Management page. */
@@ -130,8 +167,25 @@ export const STATE_COLORS: Record<RMAState, string> = {
   DIAGNOSED: '#6c757d',
   REPAIRED: '#007bff',
   REPLACED: '#007bff',
+  IN_QA: '#8b5cf6',
+  READY_FOR_RETURN: '#f59e0b',
   SHIPPED: '#28a745',
   COMPLETED: '#6c757d',
+};
+
+/** Human-readable labels for RMA states. */
+export const STATE_LABELS: Record<RMAState, string> = {
+  SUBMITTED: 'SUBMITTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  RECEIVED: 'RECEIVED',
+  DIAGNOSED: 'DIAGNOSED',
+  REPAIRED: 'REPAIRED',
+  REPLACED: 'REPLACED',
+  IN_QA: 'IN QA',
+  READY_FOR_RETURN: 'READY FOR RETURN',
+  SHIPPED: 'SHIPPED',
+  COMPLETED: 'COMPLETED',
 };
 
 /** Colour map for RMA priority badges. */

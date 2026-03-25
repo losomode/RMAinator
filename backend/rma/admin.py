@@ -37,6 +37,8 @@ class RMAAdmin(admin.ModelAdmin):
             'DIAGNOSED': '#6C757D',
             'REPAIRED': '#007BFF',
             'REPLACED': '#007BFF',
+            'IN_QA': '#8B5CF6',
+            'READY_FOR_RETURN': '#F59E0B',
             'SHIPPED': '#28A745',
             'COMPLETED': '#6C757D',
         }
@@ -68,17 +70,20 @@ class RMAAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('rma_number', 'owner', 'group', 'state', 'priority')
+            'fields': ('rma_number', 'owner', 'group', 'state', 'priority', 'company_id')
         }),
-        ('Device Information', {
-            'fields': ('serial_number', 'first_ship_date', 'fault_notes')
+        ('Device Information (Customer-Submitted)', {
+            'fields': ('serial_number', 'device_type', 'ipn', 'fault_notes')
         }),
         ('Dates', {
-            'fields': ('created_at', 'updated_at', 'rma_received_date', 'return_date', 'years_in_field')
+            'fields': ('created_at', 'updated_at', 'first_ship_date', 'rma_received_date', 'return_date', 'years_in_field')
         }),
         ('Technical Fields (Admin Only)', {
-            'fields': ('root_cause', 'parts_replaced', 'cost_to_repair', 'tx2_mac',
-                      'script_ran', 'services_enabled', 'uptime_good', 'stream_good', 'ship_ready')
+            'fields': ('root_cause', 'parts_replaced', 'cost_to_repair', 'device_mac', 'return_tracking_number')
+        }),
+        ('Repair QA Checklist (Admin Only)', {
+            'fields': ('qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok', 'qa_services_ok',
+                       'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok')
         }),
         ('Rejection', {
             'fields': ('rejection_reason',)
@@ -88,8 +93,9 @@ class RMAAdmin(admin.ModelAdmin):
 
 @admin.register(RMAGroup)
 class RMAGroupAdmin(admin.ModelAdmin):
-    list_display = ['id', 'created_by', 'created_at']
+    list_display = ['id', 'name', 'company_id', 'created_by', 'created_at']
     readonly_fields = ['created_at']
+    search_fields = ['name', 'created_by__username']
 
 
 @admin.register(RMAStateHistory)

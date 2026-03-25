@@ -76,8 +76,9 @@ def _attach_authinator_attrs(user, user_data, context_data=None):
     user.customer_id_remote = company_id  # Legacy alias
     user.customer_name = company_name
     user.is_verified = user_data.get('is_verified', False)
-    # Use role_level when available; fall back to legacy role string
-    user.is_admin = role_level >= 100 if role_level is not None else role == 'ADMIN'
+    # Use role_level when it carries a meaningful value (>0); fall back to role string
+    # role_level defaults to 0 when absent from the token, so treat 0 as "not provided"
+    user.is_admin = role_level >= 100 if role_level else role == 'ADMIN'
 
     # Attach helper methods (legacy aliases)
     user.is_system_admin = lambda: user.is_admin

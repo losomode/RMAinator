@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { rmaApi } from '../api';
-import { STATE_COLORS } from '../types';
+import { STATE_COLORS, STATE_LABELS } from '../types';
 import type { RMA } from '../types';
 import { useAuth } from '@inator/shared/auth/AuthProvider';
 import { companiesApi, type Company } from '@inator/shared/api/companies';
+
 
 type ViewMode = 'all' | 'byGroup';
 
@@ -15,9 +16,10 @@ export function Dashboard(): React.JSX.Element {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
+  type DashboardFilter = 'all' | 'active' | 'completed';
+  const [filter, setFilter] = useState<DashboardFilter>('all');
   const [companyFilter, setCompanyFilter] = useState<number | ''>('');
-  const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('byGroup');
 
   const navigate = useNavigate();
 
@@ -31,7 +33,7 @@ export function Dashboard(): React.JSX.Element {
   useEffect(() => {
     void loadRMAs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived, companyFilter]);
+  }, [filter, companyFilter]);
 
   const loadCompanies = async (): Promise<void> => {
     try {
@@ -45,7 +47,10 @@ export function Dashboard(): React.JSX.Element {
   const loadRMAs = async (): Promise<void> => {
     try {
       setLoading(true);
-      const params: Record<string, unknown> = { archived: showArchived };
+      // No archived param when filter=all → backend returns everything
+      const params: Record<string, unknown> = {};
+      if (filter === 'active') params.archived = false;
+      else if (filter === 'completed') params.archived = true;
       if (companyFilter) params.company = companyFilter;
       const data = await rmaApi.list(params);
       setRmas(data);
@@ -76,12 +81,19 @@ export function Dashboard(): React.JSX.Element {
               ))}
             </select>
           )}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="rounded-md border border-gray-300 bg-white px-5 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            {showArchived ? 'Show Active' : 'Show Completed'}
-          </button>
+          {(['all', 'active', 'completed'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-md border px-5 py-2 text-sm font-medium transition-colors ${
+                filter === f
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {f === 'all' ? 'All' : f === 'active' ? 'Active Only' : 'Completed Only'}
+            </button>
+          ))}
           <button
             onClick={() => navigate('/new')}
             className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -118,7 +130,7 @@ export function Dashboard(): React.JSX.Element {
       ) : rmas.length === 0 ? (
         <div className="rounded-lg bg-white p-16 text-center shadow-sm">
           <p className="text-gray-500">No RMAs found</p>
-          {!showArchived && (
+          {filter !== 'completed' && (
             <button
               onClick={() => navigate('/new')}
               className="mt-4 rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -135,6 +147,7 @@ export function Dashboard(): React.JSX.Element {
 }
 
 function RMAView({ rmas, viewMode }: { rmas: RMA[]; viewMode: ViewMode }): React.JSX.Element {
+  const navigate = useNavigate();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (groupId: string): void => {
@@ -154,36 +167,86 @@ function RMAView({ rmas, viewMode }: { rmas: RMA[]; viewMode: ViewMode }): React
       }
     });
 
+    // Sort groups newest-first by the most recent RMA's created_at.
+    // (Object.entries on numeric keys would sort ascending by key, so we sort explicitly.)
+    const sortedGroups = Object.entries(grouped).sort(([, aRmas], [, bRmas]) => {
+      const aTime = new Date(aRmas[0]?.created_at ?? 0).getTime();
+      const bTime = new Date(bRmas[0]?.created_at ?? 0).getTime();
+      return bTime - aTime;
+    });
+
+    // Bucket into years (newest first)
+    const groupsByYear: Record<number, Array<[string, RMA[]]>> = {};
+    for (const entry of sortedGroups) {
+    const year = new Date(entry[1][0]?.group_created_at ?? entry[1][0]?.created_at ?? 0).getFullYear();
+      if (!groupsByYear[year]) groupsByYear[year] = [];
+      groupsByYear[year].push(entry);
+    }
+    const years = Object.keys(groupsByYear).map(Number).sort((a, b) => b - a);
+
     return (
       <div>
-        {Object.entries(grouped).map(([groupId, groupRmas]) => {
-          const isExpanded = expandedGroups[groupId] !== false;
-          return (
-            <div key={`group-${groupId}`} className="mb-12">
-              <div className="mb-5 flex items-center gap-3 rounded-lg border-l-4 border-blue-600 bg-gray-50 p-5">
-                <button
-                  onClick={() => toggleGroup(groupId)}
-                  className="rounded border border-gray-300 px-3 py-1 text-sm font-bold text-blue-600"
-                  aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+        {years.map((year) => (
+          <div key={year} className="mb-10 flex gap-0">
+            {/* Sticky year indicator on the left */}
+            <div className="w-10 flex-shrink-0">
+              <div className="sticky top-4 flex justify-center">
+                <span
+                  className="select-none rounded-md bg-blue-600 px-2 py-4 text-xs font-bold tracking-widest text-white shadow-sm"
+                  style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
                 >
-                  {isExpanded ? '▼' : '▶'}
-                </button>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  📦 RMA Group #{groupId}
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    ({groupRmas.length} devices)
-                  </span>
-                </h3>
+                  {year}
+                </span>
               </div>
-              {isExpanded && <RMAGrid rmas={groupRmas} />}
             </div>
-          );
-        })}
+
+            {/* Groups for this year */}
+            <div className="flex-1 pl-3">
+              {groupsByYear[year]!.map(([groupId, groupRmas]) => {
+                const isExpanded = expandedGroups[groupId] !== false;
+                const company = groupRmas[0]?.company_name;
+                return (
+                  <div key={`group-${groupId}`} className="mb-8">
+                    <div className="mb-5 flex items-center gap-3 rounded-lg border-l-4 border-blue-600 bg-gray-50 p-5">
+                      <button
+                        onClick={() => toggleGroup(groupId)}
+                        className="rounded border border-gray-300 px-3 py-1 text-sm font-bold text-blue-600"
+                        aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+                      >
+                        {isExpanded ? '▼' : '▶'}
+                      </button>
+                      <button
+                        onClick={() => navigate(`/group/${groupId}`)}
+                        className="text-left"
+                      >
+                        <h3 className="text-lg font-semibold text-blue-700 hover:underline">
+                          📦 {groupRmas[0]?.group_name ?? `Group #${groupId}`}
+                          <span className="ml-2 text-sm font-normal text-gray-500">
+                            ({groupRmas.length} device{groupRmas.length !== 1 ? 's' : ''})
+                          </span>
+                        </h3>
+                      </button>
+                      {company && (
+                        <span className="rounded bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          🏢 {company}
+                        </span>
+                      )}
+                    </div>
+                    {isExpanded && <RMAGrid rmas={groupRmas} />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         {ungrouped.length > 0 && (
-          <div className="mb-6">
-            <h3 className="mb-5 text-lg font-semibold text-gray-900">Individual RMAs</h3>
-            <RMAGrid rmas={ungrouped} />
+          <div className="mb-6 flex gap-0">
+            <div className="w-10 flex-shrink-0" />
+            <div className="flex-1 pl-3">
+              <h3 className="mb-5 text-lg font-semibold text-gray-900">Individual RMAs</h3>
+              <RMAGrid rmas={ungrouped} />
+            </div>
           </div>
         )}
       </div>
@@ -223,13 +286,13 @@ function RMACard({ rma }: { rma: RMA }): React.JSX.Element {
           className="rounded-full px-3 py-1 text-xs font-medium text-white"
           style={{ backgroundColor: STATE_COLORS[rma.state] }}
         >
-          {rma.state}
+          {STATE_LABELS[rma.state]}
         </span>
       </div>
       <div className="flex flex-col gap-2 text-sm text-gray-600">
         {rma.group_id && (
           <span className="inline-block w-fit rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-            📦 Group #{rma.group_id}
+            📦 {rma.group_name ?? `Group #${String(rma.group_id)}`}
           </span>
         )}
         {isAdmin && rma.company_name && (
