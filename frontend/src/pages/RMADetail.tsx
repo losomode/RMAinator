@@ -55,6 +55,12 @@ export function RMADetail(): React.JSX.Element {
   const [transitioning, setTransitioning] = useState(false);
   const [stateError, setStateError] = useState('');
   const [revertState, setRevertState] = useState<RMAState | ''>('');
+  const [shippingTrackingNumber, setShippingTrackingNumber] = useState('');
+
+  // Snapshot of workflow-managed fields when entering edit mode
+  const [workflowSnapshot, setWorkflowSnapshot] = useState({
+    rma_received_date: '', return_date: '', return_tracking_number: '',
+  });
   const [editingFields, setEditingFields] = useState(false);
   const [adminFields, setAdminFields] = useState<Record<string, string | boolean | string[]>>({
     priority: '',
@@ -141,11 +147,15 @@ export function RMADetail(): React.JSX.Element {
       if (newState === 'REJECTED') {
         payload.notes = transitionNotes || `Rejected: ${rejectionReason}`;
       }
+      if (newState === 'SHIPPED' && shippingTrackingNumber.trim()) {
+        payload.tracking_number = shippingTrackingNumber.trim();
+      }
       const result = await rmaApi.updateState(id!, payload);
       setRma(result.rma);
       populateAdminFields(result.rma);
       setTransitionNotes('');
       setRejectionReason('');
+      setShippingTrackingNumber('');
       if (newState === 'REJECTED') {
         await rmaApi.update(id!, { rejection_reason: rejectionReason } as Partial<RMA>);
       }
@@ -162,6 +172,16 @@ export function RMADetail(): React.JSX.Element {
   };
 
   const handleSaveFields = async (): Promise<void> => {
+    // Warn if workflow-managed fields were manually changed
+    const workflowChanged =
+      (adminFields.rma_received_date as string) !== workflowSnapshot.rma_received_date ||
+      (adminFields.return_date as string) !== workflowSnapshot.return_date ||
+      (adminFields.return_tracking_number as string) !== workflowSnapshot.return_tracking_number;
+
+    if (workflowChanged && !window.confirm(
+      'Return Date, Return Tracking Number, and RMA Received Date are normally updated automatically by the status workflow.\n\nSave manual changes anyway?'
+    )) return;
+
     setSaving(true);
     setSaveError('');
     setSaveSuccess('');
@@ -259,10 +279,12 @@ export function RMADetail(): React.JSX.Element {
             stateError={stateError}
             rejectionReason={rejectionReason}
             transitionNotes={transitionNotes}
+            shippingTrackingNumber={shippingTrackingNumber}
             transitioning={transitioning}
             revertState={revertState}
             onRejectionReasonChange={setRejectionReason}
             onTransitionNotesChange={setTransitionNotes}
+            onShippingTrackingChange={setShippingTrackingNumber}
             onRevertStateChange={setRevertState}
             onTransition={(s, r) => void handleStateTransition(s, r)}
           />
@@ -277,7 +299,14 @@ export function RMADetail(): React.JSX.Element {
             saveError={saveError}
             saveSuccess={saveSuccess}
             onFieldChange={(f, v) => setAdminFields((prev) => ({ ...prev, [f]: v }))}
-            onEdit={() => setEditingFields(true)}
+            onEdit={() => {
+              setEditingFields(true);
+              setWorkflowSnapshot({
+                rma_received_date: adminFields.rma_received_date as string,
+                return_date: adminFields.return_date as string,
+                return_tracking_number: adminFields.return_tracking_number as string,
+              });
+            }}
             onSave={() => void handleSaveFields()}
             onCancel={() => {
               setEditingFields(false);
@@ -376,10 +405,12 @@ function StateControls({
   stateError,
   rejectionReason,
   transitionNotes,
+  shippingTrackingNumber,
   transitioning,
   revertState,
   onRejectionReasonChange,
   onTransitionNotesChange,
+  onShippingTrackingChange,
   onRevertStateChange,
   onTransition,
 }: {
@@ -387,13 +418,17 @@ function StateControls({
   stateError: string;
   rejectionReason: string;
   transitionNotes: string;
+  shippingTrackingNumber: string;
   transitioning: boolean;
   revertState: RMAState | '';
   onRejectionReasonChange: (v: string) => void;
   onTransitionNotesChange: (v: string) => void;
+  onShippingTrackingChange: (v: string) => void;
   onRevertStateChange: (v: RMAState | '') => void;
   onTransition: (state: RMAState, isRevert: boolean) => void;
 }): React.JSX.Element {
+  const shippedIsNext = VALID_TRANSITIONS[rma.state]?.includes('SHIPPED');
+
   return (
     <div className="rounded-lg bg-white p-8 shadow">
       <h2 className="mb-6 border-b-2 border-gray-100 pb-3 text-xl font-semibold text-gray-900">
@@ -419,18 +454,41 @@ function StateControls({
         </div>
       )}
 
-      <div className="mb-4">
-        <label className="mb-1 block text-sm font-semibold text-gray-600">
-          Notes (optional):
-        </label>
-        <textarea
-          value={transitionNotes}
-          onChange={(e) => onTransitionNotesChange(e.target.value)}
-          placeholder="Add notes for this state change..."
-          className="w-full rounded-md border border-gray-300 p-2 text-sm"
-          data-testid="transition-notes"
-        />
-      </div>
+      {shippedIsNext ? (
+        /* When SHIPPED is the next state, require a tracking number instead of generic notes */
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-semibold text-gray-600">
+            Return Tracking Number <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={shippingTrackingNumber}
+            onChange={(e) => onShippingTrackingChange(e.target.value)}
+            placeholder="e.g. UPS-1Z999AA10123456784"
+            className="w-full rounded-md border border-gray-300 p-2 text-sm"
+            data-testid="shipping-tracking-number"
+          />
+          <p className="mt-2 text-xs text-gray-400">
+            📦 Shipping multiple devices from the same group? Use{' '}
+            <strong>Ship All</strong> or <strong>Create Partial Shipment</strong> from the group page
+            to apply one tracking number to the whole batch. Enter tracking here for individual
+            shipments only.
+          </p>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <label className="mb-1 block text-sm font-semibold text-gray-600">
+            Notes (optional):
+          </label>
+          <textarea
+            value={transitionNotes}
+            onChange={(e) => onTransitionNotesChange(e.target.value)}
+            placeholder="Add notes for this state change..."
+            className="w-full rounded-md border border-gray-300 p-2 text-sm"
+            data-testid="transition-notes"
+          />
+        </div>
+      )}
 
       {VALID_TRANSITIONS[rma.state] && (
         <div className="flex flex-wrap gap-3">
@@ -438,8 +496,8 @@ function StateControls({
             <button
               key={nextState}
               onClick={() => onTransition(nextState, false)}
-              disabled={transitioning}
-              className={`rounded-md px-6 py-2 text-sm font-semibold text-white ${
+              disabled={transitioning || (nextState === 'SHIPPED' && !shippingTrackingNumber.trim())}
+              className={`rounded-md px-6 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
                 nextState === 'REJECTED'
                   ? 'bg-red-500 hover:bg-red-600'
                   : 'bg-green-600 hover:bg-green-700'
@@ -604,6 +662,7 @@ function AdminFieldsSection({
           onChange={(v) => onFieldChange('rma_received_date', v)}
           disabled={!editingFields}
           testId="admin-rma-received-date"
+          helperText="Auto-set when status changes to RECEIVED"
         />
         <AdminField
           label="Return Date"
@@ -612,6 +671,7 @@ function AdminFieldsSection({
           onChange={(v) => onFieldChange('return_date', v)}
           disabled={!editingFields}
           testId="admin-return-date"
+          helperText="Auto-set when status changes to SHIPPED"
         />
         <AdminField
           label="Cost to Repair"
@@ -636,6 +696,7 @@ function AdminFieldsSection({
           onChange={(v) => onFieldChange('return_tracking_number', v)}
           disabled={!editingFields}
           testId="admin-return-tracking-number"
+          helperText="Auto-set when status changes to SHIPPED"
         />
       </div>
 
@@ -879,6 +940,7 @@ function AdminField({
   disabled,
   options,
   testId,
+  helperText,
 }: {
   label: string;
   type: 'text' | 'date' | 'select';
@@ -887,6 +949,7 @@ function AdminField({
   disabled: boolean;
   options?: string[];
   testId: string;
+  helperText?: string;
 }): React.JSX.Element {
   return (
     <div>
@@ -914,6 +977,9 @@ function AdminField({
           className="w-full rounded-md border border-gray-300 p-2 text-sm"
           data-testid={testId}
         />
+      )}
+      {helperText && (
+        <p className="mt-1 text-xs italic text-gray-400">{helperText}</p>
       )}
     </div>
   );

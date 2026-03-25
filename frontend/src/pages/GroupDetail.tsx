@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@inator/shared/auth/AuthProvider';
 import { rmaApi } from '../api';
 import { STATE_COLORS, STATE_LABELS } from '../types';
-import type { RMA, RMAGroup, RMAState } from '../types';
+import type { RMA, RMAGroup, RMAState, Shipment } from '../types';
 import { getApiErrorMessage } from '@inator/shared/types';
 
 /** Group Detail page — all devices in a group with bulk action controls. */
@@ -304,7 +304,7 @@ export function GroupDetail(): React.JSX.Element {
       </div>
 
       {/* Device List */}
-      <div className="rounded-lg bg-white p-6 shadow">
+      <div className="mb-8 rounded-lg bg-white p-6 shadow">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">Devices ({rmas.length})</h2>
         {rmas.length === 0 ? (
           <p className="py-8 text-center text-gray-400">No devices in this group</p>
@@ -351,6 +351,22 @@ export function GroupDetail(): React.JSX.Element {
           {STATE_LABELS[rma.state]}
         </span>
       </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Return Shipments Panel */}
+      <div className="mb-8 rounded-lg bg-white p-6 shadow">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          Return Shipments{group.shipments.length > 0 ? ` (${group.shipments.length})` : ''}
+        </h2>
+        {group.shipments.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">No return shipments yet. Shipment records will appear here when devices are marked as Shipped.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {group.shipments.map((shipment) => (
+              <ShipmentRow key={shipment.tracking_number} shipment={shipment} />
             ))}
           </div>
         )}
@@ -640,6 +656,73 @@ function SelectionModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ShipmentRow({ shipment }: { shipment: Shipment }): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false);
+  const shipDate = shipment.ship_date
+    ? new Date(shipment.ship_date).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      })
+    : '—';
+
+  return (
+    <div className="rounded-md border border-gray-200">
+      {/* Header row */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-4 px-4 py-3 text-left hover:bg-gray-50"
+      >
+        <span className="text-sm font-bold text-gray-400">{expanded ? '▼' : '▶'}</span>
+
+        {/* Tracking number */}
+        <span className="flex-1 font-mono text-sm font-semibold text-gray-900">
+          {shipment.tracking_number}
+        </span>
+
+        {/* Ship date */}
+        <span className="text-sm text-gray-500">{shipDate}</span>
+
+        {/* Device count badge */}
+        <span className="rounded-full bg-blue-50 px-3 py-0.5 text-xs font-medium text-blue-700">
+          {shipment.devices.length} device{shipment.devices.length !== 1 ? 's' : ''}
+        </span>
+      </button>
+
+      {/* Expanded device list */}
+      {expanded && (
+        <div className="border-t border-gray-100">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-4 py-2 text-left">RMA #</th>
+                <th className="px-4 py-2 text-left">Serial Number</th>
+                <th className="px-4 py-2 text-left">Device Type</th>
+                <th className="px-4 py-2 text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {shipment.devices.map((device) => (
+                <tr key={device.id}>
+                  <td className="px-4 py-2 font-bold text-blue-600">#{device.rma_number}</td>
+                  <td className="px-4 py-2 text-gray-700">{device.serial_number}</td>
+                  <td className="px-4 py-2 text-gray-500">{device.device_type || '—'}</td>
+                  <td className="px-4 py-2">
+                    <span
+                      className="rounded-full px-3 py-0.5 text-xs font-semibold text-white"
+                      style={{ backgroundColor: STATE_COLORS[device.state] }}
+                    >
+                      {STATE_LABELS[device.state]}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

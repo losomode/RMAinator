@@ -75,6 +75,22 @@ export interface RMA {
   qa_lens_control_ok?: boolean;
 }
 
+/** A single device entry within a shipment record. */
+export interface ShipmentDevice {
+  id: number;
+  rma_number: string;
+  serial_number: string;
+  device_type: string;
+  state: RMAState;
+}
+
+/** A logical shipment: one tracking number applied to one or more devices. */
+export interface Shipment {
+  tracking_number: string;
+  ship_date: string | null;
+  devices: ShipmentDevice[];
+}
+
 /** An RMA group as returned by the group detail API. */
 export interface RMAGroup {
   id: number;
@@ -85,6 +101,7 @@ export interface RMAGroup {
   created_at: string;
   device_count: number;
   rmas: RMA[];
+  shipments: Shipment[];
 }
 
 /** A single device entry in the create-RMA form. */

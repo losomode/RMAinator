@@ -126,6 +126,13 @@ class RMAStateUpdateView(views.APIView):
         if new_state == RMA.State.RECEIVED and not rma.rma_received_date:
             rma.rma_received_date = date.today()
 
+        # Auto-populate return fields when transitioning to SHIPPED
+        if new_state == RMA.State.SHIPPED:
+            rma.return_date = date.today()
+            tracking_number = request.data.get('tracking_number', '').strip()
+            if tracking_number:
+                rma.return_tracking_number = tracking_number
+
         # Update state
         rma._changed_by = request.user
         rma.state = new_state
@@ -430,6 +437,7 @@ class RMAGroupBulkStateView(views.APIView):
                 rma._changed_by = request.user
                 if new_state == RMA.State.SHIPPED:
                     rma.return_tracking_number = tracking_number
+                    rma.return_date = date.today()
                 rma.state = new_state
                 rma.save()
 

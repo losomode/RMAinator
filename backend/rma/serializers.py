@@ -270,20 +270,53 @@ class RMAGroupSerializer(serializers.ModelSerializer):
     rmas = RMAListSerializer(many=True, read_only=True)
     company_name = serializers.SerializerMethodField()
     device_count = serializers.ReadOnlyField()
+    shipments = serializers.SerializerMethodField()
 
     class Meta:
         model = RMAGroup
         fields = (
             'id', 'name', 'company_id', 'company_name', 'return_shipping_address',
-            'created_by', 'created_at', 'device_count', 'rmas'
+            'created_by', 'created_at', 'device_count', 'rmas', 'shipments'
         )
-        read_only_fields = ('id', 'created_by', 'created_at', 'device_count', 'company_name')
+        read_only_fields = ('id', 'created_by', 'created_at', 'device_count', 'company_name', 'shipments')
 
     def get_company_name(self, obj):
         if obj.company_id is None:
             return None
         company_data = userinator_client.get_company(obj.company_id)
         return company_data.get('name') if company_data else None
+
+    def get_shipments(self, obj):
+        """Group shipped/completed RMAs by tracking number into shipment records."""
+        # Use prefetch cache — avoids extra DB query when rmas are prefetched
+        shipped = [
+            r for r in obj.rmas.all()
+            if r.state in (RMA.State.SHIPPED, RMA.State.COMPLETED)
+            and r.return_tracking_number
+        ]
+
+        by_tracking: dict = {}
+        for rma in shipped:
+            key = rma.return_tracking_number
+            if key not in by_tracking:
+                by_tracking[key] = {
+                    'tracking_number': key,
+                    'ship_date': rma.return_date.isoformat() if rma.return_date else None,
+                    'devices': [],
+                }
+            by_tracking[key]['devices'].append({
+                'id': rma.id,
+                'rma_number': rma.rma_number,
+                'serial_number': rma.serial_number,
+                'device_type': rma.device_type,
+                'state': rma.state,
+            })
+
+        return sorted(
+            by_tracking.values(),
+            key=lambda s: s['ship_date'] or '',
+            reverse=True,
+        )
 
 
 class RMAGroupCreateSerializer(serializers.Serializer):
