@@ -83,7 +83,7 @@ class RMAAdmin(admin.ModelAdmin):
         }),
         ('Repair QA Checklist (Admin Only)', {
             'fields': ('qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok', 'qa_services_ok',
-                       'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok')
+                       'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok', 'repair_notes')
         }),
         ('Rejection', {
             'fields': ('rejection_reason',)

@@ -34,6 +34,7 @@ def track_rma_changes(sender, instance, **kwargs):
                 'return_tracking_number', 'rejection_reason',
                 'qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok',
                 'qa_services_ok', 'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok',
+                'repair_notes',
             ]
             
             for field in audited_fields:

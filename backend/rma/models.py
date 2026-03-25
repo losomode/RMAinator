@@ -125,6 +125,9 @@ class RMA(models.Model):
     qa_stream_uptime_ok = models.BooleanField(default=False)
     qa_lens_control_ok = models.BooleanField(default=False)
 
+    # Internal repair notes (admin-only free text)
+    repair_notes = models.TextField(blank=True, help_text="Internal repair notes and observations")
+
     # Rejection reason (if rejected)
     rejection_reason = models.TextField(blank=True)
     

@@ -58,6 +58,7 @@ export interface RMA {
   attachments?: RMAAttachment[];
   state_history?: RMAStateHistory[];
   // Admin-only fields
+  repair_notes?: string;
   root_cause?: string;
   parts_replaced?: string[];
   cost_to_repair?: string;

@@ -58,6 +58,7 @@ export function RMADetail(): React.JSX.Element {
   const [editingFields, setEditingFields] = useState(false);
   const [adminFields, setAdminFields] = useState<Record<string, string | boolean | string[]>>({
     priority: '',
+    repair_notes: '',
     root_cause: '',
     parts_replaced: ['', ''],
     cost_to_repair: '',
@@ -102,6 +103,7 @@ export function RMADetail(): React.JSX.Element {
       Array.isArray(partsRaw) && partsRaw.length > 0 ? [...partsRaw, ''] : ['', ''];
     setAdminFields({
       priority: data.priority || 'NORMAL',
+      repair_notes: data.repair_notes ?? '',
       root_cause: data.root_cause ?? '',
       parts_replaced: partsList,
       cost_to_repair: data.cost_to_repair ?? '',
@@ -646,6 +648,21 @@ function AdminFieldsSection({
           disabled={!editingFields}
           className="w-full rounded-md border border-gray-300 p-2 text-sm"
           data-testid="admin-root-cause"
+        />
+      </div>
+
+      {/* Repair Notes — free-form admin scratch pad */}
+      <div className="mt-6">
+        <label className="mb-1 block text-sm font-bold text-gray-700">Repair Notes</label>
+        <p className="mb-2 text-xs text-gray-400">Internal notes, observations, or anything worth remembering about this repair.</p>
+        <textarea
+          value={adminFields.repair_notes as string}
+          onChange={(e) => onFieldChange('repair_notes', e.target.value)}
+          disabled={!editingFields}
+          rows={6}
+          className="w-full rounded-md border border-gray-300 p-3 text-sm leading-relaxed"
+          placeholder="e.g. lens focus motor replaced, re-flashed to v2.1.0, verified stream for 30 min before packaging…"
+          data-testid="admin-repair-notes"
         />
       </div>
 

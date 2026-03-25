@@ -116,7 +116,7 @@ class RMADetailSerializer(serializers.ModelSerializer):
                 'return_tracking_number',
                 'qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok',
                 'qa_services_ok', 'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok',
-                'rejection_reason'
+                'repair_notes', 'rejection_reason'
             ]
             for field in admin_fields:
                 data.pop(field, None)
@@ -179,7 +179,7 @@ class RMAUpdateSerializer(serializers.ModelSerializer):
             'device_mac', 'return_tracking_number',
             'qa_reflashed', 'qa_image_version', 'qa_nvme_data_ok',
             'qa_services_ok', 'qa_uptime_ok', 'qa_stream_uptime_ok', 'qa_lens_control_ok',
-            'rejection_reason', 'group_id'
+            'repair_notes', 'rejection_reason', 'group_id'
         )
 
 
