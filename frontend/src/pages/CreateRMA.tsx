@@ -26,7 +26,6 @@ export function CreateRMA(): React.JSX.Element {
 
   // Structured return shipping address
   const [addrContactName, setAddrContactName] = useState('');
-  const [addrCompany, setAddrCompany] = useState('');
   const [addrLine1, setAddrLine1] = useState('');
   const [addrLine2, setAddrLine2] = useState('');
   const [addrCity, setAddrCity] = useState('');
@@ -39,10 +38,10 @@ export function CreateRMA(): React.JSX.Element {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAdmin) {
-      void loadCompanies();
-    } else {
-      // For non-admins, pre-populate from auth context
+    // Load companies for all users so we can use the name in the formatted address
+    void loadCompanies();
+    if (!isAdmin) {
+      // Pre-populate company from JWT for non-admins
       const jwtCompanyId = (user as unknown as { company_id?: number })?.company_id;
       if (jwtCompanyId) setCompanyId(jwtCompanyId);
     }
@@ -116,9 +115,11 @@ export function CreateRMA(): React.JSX.Element {
 
     try {
       // Format address as a structured multi-line string
+      // Use the company name from the selected company dropdown
+      const selectedCompanyName = companies.find((c) => c.id === companyId)?.name ?? '';
       const returnShippingAddress = [
         addrContactName.trim(),
-        addrCompany.trim(),
+        selectedCompanyName,
         addrLine1.trim(),
         addrLine2.trim(),
         `${addrCity.trim()}, ${addrState.trim()} ${addrZip.trim()}`.trim(),
@@ -198,8 +199,6 @@ export function CreateRMA(): React.JSX.Element {
           <div className="flex flex-col gap-3">
             <AddrField label="Contact Name" value={addrContactName} onChange={setAddrContactName}
               required disabled={loading} />
-            <AddrField label="Company" value={addrCompany} onChange={setAddrCompany}
-              disabled={loading} />
             <AddrField label="Address Line 1" value={addrLine1} onChange={setAddrLine1}
               required disabled={loading} />
             <AddrField label="Address Line 2" value={addrLine2} onChange={setAddrLine2}
