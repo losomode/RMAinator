@@ -84,6 +84,8 @@ class RMADetailSerializer(serializers.ModelSerializer):
     years_in_field = serializers.ReadOnlyField()
     is_archived = serializers.ReadOnlyField()
     company_name = serializers.SerializerMethodField()
+    # Explicit group_id so frontend can read it (fields='__all__' serializes FK as 'group')
+    group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
 
     class Meta:
         model = RMA
