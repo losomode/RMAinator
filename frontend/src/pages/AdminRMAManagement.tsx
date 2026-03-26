@@ -209,8 +209,7 @@ export function AdminRMAManagement(): React.JSX.Element {
           <select value={moveTargetGroupId} onChange={(e) => setMoveTargetGroupId(e.target.value)}
             className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
-            <option value="">— Select target —</option>
-            <option value="null">Standalone (remove from group)</option>
+            <option value="">— Select a group —</option>
             {allGroups.filter((g) => g.id !== moveDeviceRma.group_id).map((g) => (
               <option key={g.id} value={g.id}>{g.name ?? `Group #${g.id}`}</option>
             ))}
