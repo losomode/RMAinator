@@ -337,9 +337,12 @@ export function GroupDetail(): React.JSX.Element {
         {/* Middle: most recent update note */}
         <div className="flex-1 min-w-0">
           {rma.latest_note && (
-            <span className="line-clamp-2 text-xs italic text-blue-500">
-              📝 {rma.latest_note}
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Update</span>
+              <span className="line-clamp-2 text-xs italic text-blue-500">
+                📝 {rma.latest_note}
+              </span>
+            </div>
           )}
         </div>
 
