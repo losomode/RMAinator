@@ -314,7 +314,7 @@ export function GroupDetail(): React.JSX.Element {
             <div className="mb-1 flex items-center gap-6 border-b border-gray-200 pb-2">
               <div className="w-80 flex-shrink-0" />
               <div className="flex-1 text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Update</div>
-              <div className="w-36 flex-shrink-0" />
+              <div className="w-52 flex-shrink-0" />
             </div>
 
             {/* Device rows — fixed column widths so notes always line up */}
@@ -352,7 +352,7 @@ export function GroupDetail(): React.JSX.Element {
                 </div>
 
                 {/* Right: state badge — fixed width, right-aligned */}
-                <div className="flex w-36 flex-shrink-0 justify-end">
+                <div className="flex w-52 flex-shrink-0 justify-end">
                   <span
                     className="rounded-full px-4 py-1 text-xs font-semibold text-white"
                     style={{ backgroundColor: STATE_COLORS[rma.state] }}
