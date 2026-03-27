@@ -309,51 +309,58 @@ export function GroupDetail(): React.JSX.Element {
         {rmas.length === 0 ? (
           <p className="py-8 text-center text-gray-400">No devices in this group</p>
         ) : (
-          <div className="flex flex-col divide-y divide-gray-100">
-            {rmas.map((rma) => (
-      <Link
-        key={rma.id}
-        to={`/${String(rma.id)}`}
-        className="flex items-center gap-6 py-4 hover:bg-gray-50"
-      >
-        {/* Left: device identifiers */}
-        <div className="flex-shrink-0 flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <span className="font-bold text-blue-600">RMA #{rma.rma_number}</span>
-            <span className="text-sm text-gray-600">{rma.serial_number}</span>
-            {rma.device_type && (
-              <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                {rma.device_type}
-              </span>
-            )}
-          </div>
-          {rma.fault_notes && (
-            <span className="truncate text-xs text-gray-400" style={{ maxWidth: '38ch' }}>
-              {rma.fault_notes}
-            </span>
-          )}
-        </div>
-
-        {/* Middle: most recent update note */}
-        <div className="flex-1 min-w-0">
-          {rma.latest_note && (
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Update</span>
-              <span className="line-clamp-2 text-xs italic text-blue-500">
-                📝 {rma.latest_note}
-              </span>
+          <div className="flex flex-col">
+            {/* Column header row */}
+            <div className="mb-1 flex items-center gap-6 border-b border-gray-200 pb-2">
+              <div className="w-80 flex-shrink-0" />
+              <div className="flex-1 text-xs font-semibold uppercase tracking-wide text-gray-400">Recent Update</div>
+              <div className="w-36 flex-shrink-0" />
             </div>
-          )}
-        </div>
 
-        {/* Right: state badge */}
-        <span
-          className="flex-shrink-0 rounded-full px-4 py-1 text-xs font-semibold text-white"
-          style={{ backgroundColor: STATE_COLORS[rma.state] }}
-        >
-          {STATE_LABELS[rma.state]}
-        </span>
-      </Link>
+            {/* Device rows — fixed column widths so notes always line up */}
+            {rmas.map((rma) => (
+              <Link
+                key={rma.id}
+                to={`/${String(rma.id)}`}
+                className="flex items-center gap-6 border-b border-gray-100 py-4 last:border-0 hover:bg-gray-50"
+              >
+                {/* Left: device identifiers — fixed width */}
+                <div className="flex w-80 flex-shrink-0 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-blue-600">RMA #{rma.rma_number}</span>
+                    <span className="text-sm text-gray-600">{rma.serial_number}</span>
+                    {rma.device_type && (
+                      <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        {rma.device_type}
+                      </span>
+                    )}
+                  </div>
+                  {rma.fault_notes && (
+                    <span className="truncate text-xs text-gray-400" style={{ maxWidth: '38ch' }}>
+                      {rma.fault_notes}
+                    </span>
+                  )}
+                </div>
+
+                {/* Middle: most recent update note — always occupies the same column */}
+                <div className="flex-1 min-w-0">
+                  {rma.latest_note && (
+                    <span className="line-clamp-2 text-xs italic text-blue-500">
+                      📝 {rma.latest_note}
+                    </span>
+                  )}
+                </div>
+
+                {/* Right: state badge — fixed width, right-aligned */}
+                <div className="flex w-36 flex-shrink-0 justify-end">
+                  <span
+                    className="rounded-full px-4 py-1 text-xs font-semibold text-white"
+                    style={{ backgroundColor: STATE_COLORS[rma.state] }}
+                  >
+                    {STATE_LABELS[rma.state]}
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         )}
