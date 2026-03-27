@@ -435,6 +435,8 @@ class RMAGroupBulkStateView(views.APIView):
         with transaction.atomic():
             for rma in rmas:
                 rma._changed_by = request.user
+                if new_state == RMA.State.RECEIVED and not rma.rma_received_date:
+                    rma.rma_received_date = date.today()
                 if new_state == RMA.State.SHIPPED:
                     rma.return_tracking_number = tracking_number
                     rma.return_date = date.today()
