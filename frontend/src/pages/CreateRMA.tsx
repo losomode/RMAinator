@@ -38,12 +38,12 @@ export function CreateRMA(): React.JSX.Element {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load companies for all users so we can use the name in the formatted address
-    void loadCompanies();
-    if (!isAdmin) {
-      // Pre-populate company from JWT for non-admins
-      const jwtCompanyId = (user as unknown as { company_id?: number })?.company_id;
-      if (jwtCompanyId) setCompanyId(jwtCompanyId);
+    if (isAdmin) {
+      // Admins need the full list to pick any company
+      void loadCompanies();
+    } else {
+      // Non-admins: fetch their own company (the list endpoint is admin-only)
+      void loadMyCompany();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
@@ -52,6 +52,16 @@ export function CreateRMA(): React.JSX.Element {
     try {
       const data = await companiesApi.list();
       setCompanies(data);
+    } catch {
+      // Non-critical
+    }
+  };
+
+  const loadMyCompany = async (): Promise<void> => {
+    try {
+      const company = await companiesApi.my();
+      setCompanies([{ id: company.id, name: company.name }]);
+      setCompanyId(company.id);
     } catch {
       // Non-critical
     }
@@ -249,7 +259,7 @@ export function CreateRMA(): React.JSX.Element {
                     type="text"
                     value={device.serial_number}
                     onChange={(e) => handleDeviceChange(index, 'serial_number', e.target.value)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
                     placeholder="e.g., 0002067"
                     disabled={loading}
                   />
@@ -293,7 +303,7 @@ export function CreateRMA(): React.JSX.Element {
                 <textarea
                   value={device.fault_notes}
                   onChange={(e) => handleDeviceChange(index, 'fault_notes', e.target.value)}
-                  className="rounded-md border border-gray-300 px-3 py-3 text-sm"
+                  className="rounded-md border border-gray-300 bg-white px-3 py-3 text-sm"
                   placeholder="Describe the issue with this device…"
                   rows={4}
                   disabled={loading}
